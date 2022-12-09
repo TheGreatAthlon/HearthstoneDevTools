@@ -1,0 +1,42 @@
+diff --git a/Assembly-CSharp/AbsDeckPickerTrayDisplay.cs b/Assembly-CSharp/AbsDeckPickerTrayDisplay.cs
+index 88bd6ce..1fcb593 100644
+--- a/Assembly-CSharp/AbsDeckPickerTrayDisplay.cs
++++ b/Assembly-CSharp/AbsDeckPickerTrayDisplay.cs
+@@ -1695,7 +1695,7 @@ public abstract class AbsDeckPickerTrayDisplay : MonoBehaviour
+ 
+ 		var selectedAdventure = AdventureConfig.Get().SelectedAdventure;
+ 
+-		return selectedAdventure == AdventureDbId.BOH||selectedAdventure == AdventureDbId.BOM;
++		return selectedAdventure == AdventureDbId.BOH||selectedAdventure == AdventureDbId.BOM || selectedAdventure==AdventureDbId.ROTLK;
+     }
+ 
+     protected void PressBackButton()
+diff --git a/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs b/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
+index 277a6f4..42f0fcc 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
+@@ -116,6 +116,11 @@ namespace Accessibility
+         {
+             ChooseAdventure(AdventureDbId.BOM, AdventureModeDbId.DUNGEON_CRAWL);
+         }
++        private void OnChooseDeathKnightPrologueAdventure()
++        {
++            ChooseAdventure(AdventureDbId.ROTLK, AdventureModeDbId.LINEAR);
++        }
++
+ 
+         public void OnAdventureChooserTrayAwake(AdventureChooserTray adventureChooserTray)
+         {
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index 44a4dfe..7efc22f 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -564,7 +564,7 @@ namespace Accessibility
+ 
+         private void SetNextAction()
+         {
+-            m_nextAction = Time.time + 1.0f;
++            m_nextAction = Time.time + 0.5f;
+         }
+ 
+         private void ClickCard(Card card)
