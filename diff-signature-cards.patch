@@ -1,0 +1,74 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs b/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
+index 4b42430..65966a4 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
+@@ -32,7 +32,7 @@ namespace Accessibility
+         {
+             var ret = new List<string>();
+ 
+-            ret.Add(GetNameWithPremium(entityDef.GetName(), premiumType)); // Golden/Diamond edition
++            ret.Add(GetNameWithPremium(entityDef.GetName(), premiumType)); // Golden/Diamond/Signature edition
+ 
+             if (readOwned)
+             {
+@@ -271,6 +271,8 @@ namespace Accessibility
+                     return LocalizationUtils.Format(LocalizationKey.READ_COLLECTION_CARD_NAME_GOLDEN, name);
+                 case TAG_PREMIUM.DIAMOND:
+                     return LocalizationUtils.Format(LocalizationKey.READ_COLLECTION_CARD_NAME_DIAMOND, name);
++                case TAG_PREMIUM.SIGNATURE:
++                    return LocalizationUtils.Format(LocalizationKey.READ_COLLECTION_CARD_NAME_SIGNATURE, name);
+                 default:
+                     return name;
+             }
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 2e8f8fb..911ad2a 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -116,6 +116,7 @@ public class LocalizationKey
+     public static LocalizationKey READ_CARD_N_COPIES = CreateKey("ACCESSIBILITY_READ_CARD_N_COPIES");
+     public static LocalizationKey READ_COLLECTION_CARD_NAME_GOLDEN = CreateKey("ACCESSIBILITY_READ_COLLECTION_CARD_NAME_GOLDEN");
+     public static LocalizationKey READ_COLLECTION_CARD_NAME_DIAMOND = CreateKey("ACCESSIBILITY_READ_COLLECTION_CARD_NAME_DIAMOND");
++    public static LocalizationKey READ_COLLECTION_CARD_NAME_SIGNATURE = CreateKey("ACCESSIBILITY_READ_COLLECTION_CARD_NAME_SIGNATURE");
+ 
+     // Global keywords
+     public static LocalizationKey GLOBAL_TAUNT = CreateKey("GLOBAL_KEYWORD_TAUNT");
+diff --git a/Assembly-CSharp/RedundantNDEPopup.cs b/Assembly-CSharp/RedundantNDEPopup.cs
+index fd556ae..5eaccf6 100644
+--- a/Assembly-CSharp/RedundantNDEPopup.cs
++++ b/Assembly-CSharp/RedundantNDEPopup.cs
+@@ -70,27 +70,33 @@ public class RedundantNDEPopup : MonoBehaviour, AccessibleUI
+ 		this.OnDismissAnimationComplete?.Invoke();
+ 		AccessibilityMgr.HideUI(this);
+ 	}
++
+ 	#region Accessibility
++
+ 	private AccessibleMenu m_accessibleMenu;
++
+ 	private void ReadPopup()
+ 	{
+ 		AccessibilityMgr.ShowUI(this);
+-		m_accessibleMenu = new AccessibleMenu(this, LocalizedText.GLOBAL_OPTIONS, null);
+ 		AccessibilityMgr.Output(this, LocalizedText.UI_POPUP, true);
+ 		AccessibilityMgr.Output(this, m_dataModel.HeaderText);
+ 		AccessibilityMgr.Output(this, m_dataModel.BodyText);
++
++		m_accessibleMenu = new AccessibleMenu(this, LocalizedText.GLOBAL_OPTIONS, null);
+ 		m_accessibleMenu.AddOption(GameStrings.Get("GLOBAL_REDUNDANT_NDE_BUTTON_REROLL"), m_rerollButton.TriggerRelease);
+ 		m_accessibleMenu.AddOption(GameStrings.Get("GLOBAL_REDUNDANT_NDE_BUTTON_DECLINE"), m_refuseButton.TriggerRelease);
+ 		m_accessibleMenu.StartReading();
+-		AccessibilityMgr.ShowUI(this);
+ 	}
++
+ 	public void HandleAccessibleInput()
+ 	{
+ 		m_accessibleMenu?.HandleAccessibleInput();
+ 	}
++
+ 	public string GetAccessibleHelp()
+ 	{
+ 		return m_accessibleMenu.GetHelp();
+ 	}
++
+ 	#endregion
+ }

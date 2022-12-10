@@ -1,0 +1,101 @@
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 2e8f8fb..8d13cf8 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -650,6 +650,8 @@ public class LocalizationKey
+     public static LocalizationKey UI_SOCIAL_CHAT_MESSAGE_SENT = CreateKey("ACCESSIBILITY_UI_SOCIAL_CHAT_MESSAGE_SENT");
+     public static LocalizationKey UI_SOCIAL_CHAT_SEND_MESSAGE = CreateKey("ACCESSIBILITY_UI_SOCIAL_CHAT_SEND_MESSAGE");
+     public static LocalizationKey UI_SOCIAL_CHAT_TYPE_MESSAGE_PROMPT = CreateKey("ACCESSIBILITY_UI_SOCIAL_CHAT_TYPE_MESSAGE_PROMPT");
++    public static LocalizationKey UI_SOCIAL_INVITE_FRIEND_TO_BG = CreateKey("ACCESSIBILITY_UI_SOCIAL_INVITE_FRIEND_TO_BG");
++    public static LocalizationKey UI_SOCIAL_FRIEND_NO_CHALLENGE = CreateKey("ACCESSIBILITY_UI_SOCIAL_FRIEND_NO_CHALLENGE");
+ 
+     // Rewards Track
+     public static LocalizationKey UI_REWARDS_TRACK_READ_LEVEL = CreateKey("ACCESSIBILITY_UI_REWARDS_TRACK_READ_LEVEL");
+diff --git a/Assembly-CSharp/Accessibility/Social/AccessibleFriendListFriendFrame.cs b/Assembly-CSharp/Accessibility/Social/AccessibleFriendListFriendFrame.cs
+index 8f6976b..0a71f7a 100644
+--- a/Assembly-CSharp/Accessibility/Social/AccessibleFriendListFriendFrame.cs
++++ b/Assembly-CSharp/Accessibility/Social/AccessibleFriendListFriendFrame.cs
+@@ -2,6 +2,7 @@
+ using System.Collections.Generic;
+ using System.Text;
+ using UnityEngine;
++using Blizzard.GameService.SDK.Client.Integration;
+ 
+ namespace Accessibility
+ {
+@@ -24,6 +25,10 @@ namespace Accessibility
+             {
+                 ret.Add(friendDataModel.PlayerName);
+                 AccessibleCardUtils.AddLineIfExists(AccessibleRankedUtils.GetBestRank(m_frame.m_rankedMedalInfo), ret);
++                		if (RankMgr.Get().GetBattlegroundsMedalFromRankPresenceField(m_frame.GetFriend()?.GetHearthstoneGameAccount(), out var bgRating)) {
++                                            AccessibleCardUtils.AddLineIfExists(LocalizedText.HUB_BATTLEGROUNDS_OPTION+" "+bgRating, ret);
++
++                        }
+             }
+             else
+             {
+diff --git a/Assembly-CSharp/BaconScene.cs b/Assembly-CSharp/BaconScene.cs
+index 49d72e4..7787bc0 100644
+--- a/Assembly-CSharp/BaconScene.cs
++++ b/Assembly-CSharp/BaconScene.cs
+@@ -77,7 +77,7 @@ public class BaconScene : BasicScene, AccessibleScreen
+ 		AccessibilityMgr.SetScreen(this);
+ 
+ 		m_curMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_BATTLEGROUNDS), OnGoBackToHub);
+-		m_curMenu.AddOption(LocalizationUtils.Get(LocalizationKey.GLOBAL_PLAY), OnClickPlay);
++		m_curMenu.AddOption(GetBaconDisplay().m_playButton.m_newPlayButtonText.Text, OnClickPlay);
+ 		m_curMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SCREEN_BATTLEGROUNDS_READ_STATS), OnReadStats);
+ 		m_curMenu.AddOption(GameStrings.Get("GLOBAL_OPTIONS"), OnClickOptions);
+ 		m_curMenu.AddOption(GameStrings.Get("GLUE_BACON_INFO_POPUP_PLAY_TUTORIAL"), GetBaconDisplay().PlayBaconTutorial);
+@@ -135,8 +135,13 @@ public class BaconScene : BasicScene, AccessibleScreen
+ 
+ 	private void OnClickPlay()
+ 	{
++		var btn=GetBaconDisplay().m_playButton;
++		if(!btn.enabled) {
++			AccessibilityMgr.Output(this,btn.m_playButtonSecondaryText.Text);
++			return;
++		}
+ 		m_curState = State.LOADING;
+-		GetBaconDisplay().m_playButton.TriggerRelease();
++		btn.TriggerRelease();
+ 	}
+ 
+ 	private void OnGoBackToHub()
+diff --git a/Assembly-CSharp/FriendListFrame.cs b/Assembly-CSharp/FriendListFrame.cs
+index e1f1b49..19842a5 100644
+--- a/Assembly-CSharp/FriendListFrame.cs
++++ b/Assembly-CSharp/FriendListFrame.cs
+@@ -3267,9 +3267,10 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+ 			{
+ 				case FriendListChallengeButton.ChallengeButtonState.CHALLENGE:
+ 					friendMenu.AddOption(GameStrings.Get("GLOBAL_CHAT_CHALLENGE"), () => ChallengeFriend(friend));
++					friendMenu.AddOption(LocalizationUtils.Format(LocalizationKey.UI_SOCIAL_INVITE_FRIEND_TO_BG), () => InviteToBgParty(friend));
+ 					break;
+ 				case FriendListChallengeButton.ChallengeButtonState.CANNOT_INTERACT:
+-					friendMenu.AddOption(GameStrings.Get("GLOBAL_CHAT_CHALLENGE"), () => ClickFriendChallengeButton(friend));
++					friendMenu.AddOption(LocalizationUtils.Format(LocalizationKey.UI_SOCIAL_FRIEND_NO_CHALLENGE,friend.m_friendDataModel.PlayerName), () => ClickFriendChallengeButton(friend));
+ 					break;
+ 				case FriendListChallengeButton.ChallengeButtonState.SPECTATE:
+ 				case FriendListChallengeButton.ChallengeButtonState.INVITED_PLAYER_TO_SPECTATE: // Doesn't really matter since it's just text
+@@ -3309,6 +3310,20 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+ 		m_curState = State.READING_FRIEND_INVITE;
+ 	}
+ 
++	private void InviteToBgParty(FriendListFriendFrame friend) {
++		FriendListChallengeButton btn=friend.m_challengeButton;
++		var dataModel = btn.GetChallengeButtonDataModel();
++		BnetPlayer player=friend.GetFriend();
++		if(dataModel.canClickButton==false) {
++			AccessibilityMgr.Output(this,btn.FormatBodytext(dataModel.text2));
++			return;
++		}
++						SceneMgr.Get().SetNextMode(SceneMgr.Mode.BACON);
++		PartyManager.Get().SendInvite(PartyType.BATTLEGROUNDS_PARTY, player.GetBestGameAccountId());
++		var challengeFriendButton = friend.m_challengeButton;
++		challengeFriendButton.CloseFriendsListMenu();
++
++	}
+     private void ChallengeFriend(FriendListFriendFrame curFriend)
+     {
+ 		var challengeFriendButton = curFriend.m_challengeButton;
