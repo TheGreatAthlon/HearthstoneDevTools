@@ -1,0 +1,41 @@
+diff --git a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
+index ecd2fa9..2ee8165 100644
+--- a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
++++ b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
+@@ -1,5 +1,7 @@
+ ﻿using System;
+ using System.Collections.Generic;
++using Hearthstone.Progression;
++using Hearthstone.DataModels;
+ 
+ namespace Accessibility
+ {
+@@ -31,14 +33,26 @@ namespace Accessibility
+         {
+             // Name and class
+             var ret = GetCommonDeckLines();
+-
+             try
+             {
+                 // Hero level
+                 var heroLevel = GameUtils.GetHeroLevel(m_deck.GetClass());
+                 var currentLevel = heroLevel.CurrentLevel?.Level;
+                 ret.Add(LocalizationUtils.Format(LocalizationKey.SCREEN_CHOOSE_DECK_HERO_LEVEL, currentLevel));
+-            }
++                if (GameUtils.HERO_SKIN_ACHIEVEMENTS.TryGetValue(m_deck.GetClass(), out var value))
++                {
++                    AchievementDataModel achievementDataModel = AchievementManager.Get().GetAchievementDataModel(value.Golden500Win);
++                                AchievementDataModel achievementDataModel2 = AchievementManager.Get().GetAchievementDataModel(value.Honored1kWin);
++                    int num = achievementDataModel?.Progress ?? 0;
++                    int num2 = achievementDataModel?.Quota ?? 0;
++                    if (achievementDataModel != null && AchievementManager.Get().IsAchievementComplete(achievementDataModel.ID))
++                    {
++                        num = achievementDataModel2?.Progress ?? num;
++                        num2 = achievementDataModel2?.Quota ?? num2;
++                    }
++                    ret.Add(GameStrings.Format("GLOBAL_HERO_WINS", num,""));
++                }
++            }        
+             catch (Exception)
+             {
+                 // In some scenarios such as the first time we open practice mode right after the tutorial ends the hero level isn't populated

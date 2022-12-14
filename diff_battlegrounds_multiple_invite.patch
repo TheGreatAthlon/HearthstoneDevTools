@@ -1,0 +1,78 @@
+diff --git a/Assembly-CSharp/FriendListChallengeButton.cs b/Assembly-CSharp/FriendListChallengeButton.cs
+index da26f7b..0f38b43 100644
+--- a/Assembly-CSharp/FriendListChallengeButton.cs
++++ b/Assembly-CSharp/FriendListChallengeButton.cs
+@@ -140,8 +140,8 @@ public class FriendListChallengeButton : MonoBehaviour
+ 			{
+ 				text = "GLOBAL_FRIENDLIST_BATTLEGROUNDS_TOOLTIP_INVITE_HEADER";
+ 				text2 = "GLOBAL_FRIENDLIST_BATTLEGROUNDS_TOOLTIP_INVITE_BODY";
+-				state = ChallengeButtonState.CANNOT_INTERACT;
+-				canClickButton = false;
++				state = ChallengeButtonState.CHALLENGE;
++				canClickButton = true;
+ 			}
+ 			else if (flag && PartyManager.Get().CanKick(hearthstoneGameAccountId))
+ 			{
+diff --git a/Assembly-CSharp/FriendListFrame.cs b/Assembly-CSharp/FriendListFrame.cs
+index 19842a5..cba6374 100644
+--- a/Assembly-CSharp/FriendListFrame.cs
++++ b/Assembly-CSharp/FriendListFrame.cs
+@@ -3260,14 +3260,15 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+ 		if (GameUtils.IsTraditionalTutorialComplete())
+ 		{
+ 			var challengeFriendButton = friend.m_challengeButton;
+-
++			BnetPlayer player=friend.GetFriend();
++			bool flag = FriendChallengeMgr.Get().CanChallenge(player);
++			bool flag2 = !flag || PartyManager.Get().IsInBattlegroundsParty();
++						NetCache.NetCacheFeatures netObject = NetCache.Get().GetNetObject<NetCache.NetCacheFeatures>();
+ 			var dataModel = challengeFriendButton.GetChallengeButtonDataModel();
+-
+ 			switch (dataModel.state)
+ 			{
+ 				case FriendListChallengeButton.ChallengeButtonState.CHALLENGE:
+-					friendMenu.AddOption(GameStrings.Get("GLOBAL_CHAT_CHALLENGE"), () => ChallengeFriend(friend));
+-					friendMenu.AddOption(LocalizationUtils.Format(LocalizationKey.UI_SOCIAL_INVITE_FRIEND_TO_BG), () => InviteToBgParty(friend));
++					friendMenu.AddOption(GameStrings.Format(dataModel.text,player.GetBestName()), () => ChallengeFriend(friend));
+ 					break;
+ 				case FriendListChallengeButton.ChallengeButtonState.CANNOT_INTERACT:
+ 					friendMenu.AddOption(LocalizationUtils.Format(LocalizationKey.UI_SOCIAL_FRIEND_NO_CHALLENGE,friend.m_friendDataModel.PlayerName), () => ClickFriendChallengeButton(friend));
+@@ -3290,8 +3291,9 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+ 					friendMenu.AddOption(GameStrings.Get("GLOBAL_CHAT_CHALLENGE"), () => ClickFriendChallengeButton(friend));
+ 					break;
+ 			}
++			if (netObject.Games.BattlegroundsFriendlyChallenge && !flag2 && player.GetHearthstoneGameAccount().GetBattlegroundsTutorialComplete() && GameUtils.IsBattleGroundsTutorialComplete())
++				friendMenu.AddOption(LocalizationUtils.Format(LocalizationKey.UI_SOCIAL_INVITE_FRIEND_TO_BG), () => InviteToBgParty(friend));
+ 		}
+-
+ 		friendMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SOCIAL_CHAT_SEND_MESSAGE), () => friend.OpenChatWithFriend());
+ 	}
+ 
+@@ -3311,13 +3313,15 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+ 	}
+ 
+ 	private void InviteToBgParty(FriendListFriendFrame friend) {
++				BnetPlayer player=friend.GetFriend();
++		/*
+ 		FriendListChallengeButton btn=friend.m_challengeButton;
+ 		var dataModel = btn.GetChallengeButtonDataModel();
+-		BnetPlayer player=friend.GetFriend();
+ 		if(dataModel.canClickButton==false) {
+ 			AccessibilityMgr.Output(this,btn.FormatBodytext(dataModel.text2));
+ 			return;
+ 		}
++		*/
+ 						SceneMgr.Get().SetNextMode(SceneMgr.Mode.BACON);
+ 		PartyManager.Get().SendInvite(PartyType.BATTLEGROUNDS_PARTY, player.GetBestGameAccountId());
+ 		var challengeFriendButton = friend.m_challengeButton;
+@@ -3337,7 +3341,9 @@ public class FriendListFrame : MonoBehaviour, AccessibleUI
+         }
+ 		else
+         {
+-			SetupChallengeFriendMenu(curFriend);
++			bool flag = PartyManager.Get().IsInBattlegroundsParty() && !SceneMgr.Get().IsInGame() && !GameMgr.Get().IsFindingGame();
++			if(!flag) SetupChallengeFriendMenu(curFriend);
++			else InviteToBgParty(curFriend);
+         }
+     }
+ 

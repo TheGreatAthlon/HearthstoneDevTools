@@ -1,0 +1,546 @@
+diff --git a/Assembly-CSharp/.gitignore b/Assembly-CSharp/.gitignore
+index 34c8dee..17c1c11 100644
+--- a/Assembly-CSharp/.gitignore
++++ b/Assembly-CSharp/.gitignore
+@@ -386,3 +386,4 @@ FodyWeavers.xsd
+ # JetBrains Rider
+ .idea/
+ *.sln.iml
++.vscode
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 72f02e9..7bd8e13 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -662,6 +662,7 @@ public class LocalizationKey
+ 
+     // Shop
+     public static LocalizationKey UI_SHOP_READ_GOLD = CreateKey("ACCESSIBILITY_UI_SHOP_READ_GOLD");
++    public static LocalizationKey UI_SHOP_READ_RUNESTONES = CreateKey("ACCESSIBILITY_UI_SHOP_READ_RUNESTONES");
+     public static LocalizationKey UI_SHOP_BUY_PACKS = CreateKey("ACCESSIBILITY_UI_SHOP_BUY_PACKS");
+     public static LocalizationKey UI_SHOP_BUY_MINI_SETS = CreateKey("ACCESSIBILITY_UI_SHOP_BUY_MINI_SETS");
+     public static LocalizationKey UI_SHOP_BUY_HERO_SKINS = CreateKey("ACCESSIBILITY_UI_SHOP_BUY_HERO_SKINS");
+@@ -669,10 +670,13 @@ public class LocalizationKey
+     public static LocalizationKey UI_SHOP_BUY_OTHERS = CreateKey("ACCESSIBILITY_UI_SHOP_BUY_OTHERS");
+     public static LocalizationKey UI_SHOP_ITEM_READ_DESCRIPTION = CreateKey("ACCESSIBILITY_UI_SHOP_ITEM_READ_DESCRIPTION");
+     public static LocalizationKey UI_SHOP_ITEM_BUY_FOR_N_GOLD = CreateKey("ACCESSIBILITY_UI_SHOP_ITEM_BUY_FOR_N_GOLD");
++    public static LocalizationKey UI_SHOP_ITEM_BUY_FOR_N_RUNESTONES = CreateKey("ACCESSIBILITY_UI_SHOP_ITEM_BUY_FOR_N_RUNESTONES");
+     public static LocalizationKey UI_SHOP_ITEM_GET_FOR_FREE = CreateKey("ACCESSIBILITY_UI_SHOP_ITEM_GET_FOR_FREE");
+     public static LocalizationKey UI_SHOP_READ_CARDS = CreateKey("ACCESSIBILITY_UI_SHOP_READ_CARDS");
+     public static LocalizationKey UI_SHOP_READ_CARDS_HELP = CreateKey("ACCESSIBILITY_UI_SHOP_READ_CARDS_HELP");
+     public static LocalizationKey UI_SHOP_PURCHASE_COMPLETE_GOLD_REMAINING = CreateKey("ACCESSIBILITY_UI_SHOP_PURCHASE_COMPLETE_GOLD_REMAINING");
++    public static LocalizationKey UI_SHOP_PURCHASE_COMPLETE_RUNESTONES_REMAINING = CreateKey("ACCESSIBILITY_UI_SHOP_PURCHASE_COMPLETE_RUNESTONES_REMAINING");
++    public static LocalizationKey UI_SHOP_NOT_ENOUGH_RUNESTONES = CreateKey("ACCESSIBILITY_UI_SHOP_NOT_ENOUGH_RUNESTONES");
+ 
+     // Screens
+     public static LocalizationKey SCREEN_GO_BACK = CreateKey("ACCESSIBILITY_SCREEN_GO_BACK");
+diff --git a/Assembly-CSharp/Accessibility/Shop/AccessibleShopUtils.cs b/Assembly-CSharp/Accessibility/Shop/AccessibleShopUtils.cs
+index 56a748c..4930fa5 100644
+--- a/Assembly-CSharp/Accessibility/Shop/AccessibleShopUtils.cs
++++ b/Assembly-CSharp/Accessibility/Shop/AccessibleShopUtils.cs
+@@ -9,12 +9,12 @@ namespace Accessibility
+ {
+ 	class AccessibleShopUtils
+ 	{
+-		internal static bool CanProductOrVariantsBeBoughtWithGold(ProductDataModel dataModel)
++		internal static bool CanProductOrVariantsBeBoughtWithGoldOrRunestones(ProductDataModel dataModel)
+ 		{
+ 			var prices = dataModel.Prices;
+ 			var variants = dataModel.Variants;
+ 
+-			if (HasGoldPrice(prices))
++			if (HasGoldPrice(prices) || HasRunestonePrice(prices))
+ 			{
+ 				return true;
+ 			}
+@@ -23,7 +23,7 @@ namespace Accessibility
+ 			{
+ 				foreach (var variant in variants)
+ 				{
+-					if (HasGoldPrice(variant.Prices))
++					if (HasGoldPrice(variant.Prices) || HasRunestonePrice(variant.Prices))
+ 					{
+ 						return true;
+ 					}
+@@ -33,14 +33,14 @@ namespace Accessibility
+ 			return false;
+ 		}
+ 
+-		internal static bool CanVariantBeBoughtWithGold(ProductDataModel dataModel)
++		internal static bool CanVariantBeBoughtWithGoldOrRunestones(ProductDataModel dataModel)
+ 		{
+ 			var prices = dataModel.Prices;
+ 
+-			return HasGoldPrice(prices);
++			return HasGoldPrice(prices) || HasRunestonePrice(prices);
+ 		}
+ 
+-		internal static bool CanBeBoughtWithGold(ShopSlot slot)
++		internal static bool CanBeBoughtWithGoldOrRunestones(ShopSlot slot)
+ 		{
+ 			if (!IsAvailable(slot))
+ 			{
+@@ -54,16 +54,16 @@ namespace Accessibility
+ 				return false;
+ 			}
+ 
+-			return CanProductOrVariantsBeBoughtWithGold(dataModel);
++			return CanProductOrVariantsBeBoughtWithGoldOrRunestones(dataModel);
+ 		}
+ 
+-		internal static List<ShopSlot> FilterSlotsWhichCanBeBoughtWithGold(List<ShopSlot> slots)
++		internal static List<ShopSlot> FilterSlotsWhichCanBeBoughtWithGoldOrRunestones(List<ShopSlot> slots)
+ 		{
+ 			var ret = new List<ShopSlot>();
+ 
+ 			foreach (var slot in slots)
+ 			{
+-				if (CanBeBoughtWithGold(slot))
++				if (CanBeBoughtWithGoldOrRunestones(slot))
+ 				{
+ 					ret.Add(slot);
+ 				}
+@@ -105,18 +105,27 @@ namespace Accessibility
+ 			return items.Count > 1;
+ 		}
+ 
+-		internal static string GetBuyForGoldText(ProductDataModel product)
++		internal static string GetBuyText(ProductDataModel product)
+ 		{
+ 			var goldCost = GetGoldCost(product);
++			var runestoneCost = GetRunestoneCost(product);
+ 
+-			if (goldCost == 0)
++			if (goldCost == 0 && runestoneCost == 0)
+ 			{
+ 				return LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_GET_FOR_FREE);
+ 			}
+-			else
++			else if (goldCost > 0)
+ 			{
+ 				return LocalizationUtils.Format(LocalizationKey.UI_SHOP_ITEM_BUY_FOR_N_GOLD, goldCost);
+ 			}
++			else if (runestoneCost > 0)
++			{
++				return LocalizationUtils.Format(LocalizationKey.UI_SHOP_ITEM_BUY_FOR_N_RUNESTONES, runestoneCost);
++			}
++			else
++			{
++				return "";
++			}
+ 		}
+ 
+ 		private static bool IsSlotWithSingleRewardType(ShopSlot slot, RewardItemType type)
+@@ -170,13 +179,31 @@ namespace Accessibility
+ 			return false;
+ 		}
+ 
+-		internal static List<ProductDataModel> GetVariantsWhichCanBeBoughtWithGold(ProductDataModel product)
++		private static bool HasRunestonePrice(DataModelList<PriceDataModel> prices)
++		{
++			if (prices == null)
++			{
++				return false;
++			}
++
++			foreach (var price in prices)
++			{
++				if (price.Currency == CurrencyType.ROW_RUNESTONES)
++				{
++					return true;
++				}
++			}
++
++			return false;
++		}
++
++		internal static List<ProductDataModel> GetVariantsWhichCanBeBoughtWithGoldOrRunestones(ProductDataModel product)
+ 		{
+ 			var ret = new List<ProductDataModel>();
+ 
+ 			foreach (var variant in product.Variants)
+ 			{
+-				if (IsAvailable(variant) && CanVariantBeBoughtWithGold(variant))
++				if (IsAvailable(variant) && CanVariantBeBoughtWithGoldOrRunestones(variant))
+ 				{
+ 					ret.Add(variant);
+ 				}
+@@ -198,6 +225,19 @@ namespace Accessibility
+ 			return 0;
+ 		}
+ 
++		internal static long GetRunestoneCost(ProductDataModel variant)
++		{
++			foreach (var price in variant.Prices)
++			{
++				if (price.Currency == CurrencyType.ROW_RUNESTONES)
++				{
++					return Mathf.RoundToInt(price.Amount);
++				}
++			}
++
++			return 0;
++		}
++
+ 		internal static List<string> CreateMultilineDescriptionForVariant(ProductDataModel variant)
+ 		{
+ 			var ret = new List<string>();
+@@ -228,20 +268,30 @@ namespace Accessibility
+ 			return ShopUtils.GetCachedBalance(CurrencyType.GOLD);
+ 		}
+ 
+-		internal static bool HasEnoughGoldToBuyVariant(ProductDataModel variant)
++		internal static long GetRunestoneBalance()
++		{
++			return ShopUtils.GetCachedBalance(CurrencyType.ROW_RUNESTONES);
++		}
++
++		internal static (bool, CurrencyType) HasEnoughToBuyVariant(ProductDataModel variant)
+ 		{
+ 			var prices = variant.Prices;
+-			var curBalance = GetGoldBalance();
++			var curGoldBalance = GetGoldBalance();
++			var curRunestoneBalance = GetRunestoneBalance();
+ 
+ 			foreach (var price in prices)
+ 			{
+-				if (price.Currency == CurrencyType.GOLD && price.Amount <= curBalance)
++				if (price.Currency == CurrencyType.GOLD)
+ 				{
+-					return true;
++					return price.Amount <= curGoldBalance ? (true, CurrencyType.GOLD) : (false, CurrencyType.GOLD);
++				}
++				if (price.Currency == CurrencyType.ROW_RUNESTONES)
++				{
++					return price.Amount <= curRunestoneBalance ? (true, CurrencyType.ROW_RUNESTONES) : (false, CurrencyType.ROW_RUNESTONES);
+ 				}
+ 			}
+ 
+-			return false;
++			return (false, CurrencyType.NONE);
+ 		}
+ 
+ 		internal static int GetGoldPriceOptionForVariant(ProductDataModel variant)
+@@ -262,16 +312,46 @@ namespace Accessibility
+ 			return -1;
+ 		}
+ 
++		internal static int GetRunestonePriceOptionForVariant(ProductDataModel variant)
++		{
++			var prices = variant.Prices;
++			var curBalance = GetRunestoneBalance();
++
++			for (int i = 0; i < prices.Count; i++)
++			{
++				var price = prices[i];
++
++				if (price.Currency == CurrencyType.ROW_RUNESTONES && price.Amount <= curBalance)
++				{
++					return i;
++				}
++			}
++
++			return -1;
++		}
++
+ 		internal static void ReadGold(AccessibleComponent speaker)
+ 		{
+ 			var gold = GetGoldBalance();
+ 			AccessibilityMgr.Output(speaker, LocalizationUtils.Format(LocalizationKey.UI_REWARD_N_GOLD, gold));
+ 		}
+ 
++		internal static void ReadRunestones(AccessibleComponent speaker)
++		{
++			var runestones = GetRunestoneBalance();
++			AccessibilityMgr.Output(speaker, LocalizationUtils.Format(LocalizationKey.UI_REWARD_N_RUNESTONES, runestones));
++		}
++
+ 		internal static void ReadRemainingGold(AccessibleComponent speaker)
+ 		{
+ 			var gold = GetGoldBalance();
+ 			AccessibilityMgr.Output(speaker, LocalizationUtils.Format(LocalizationKey.UI_SHOP_PURCHASE_COMPLETE_GOLD_REMAINING, gold));
+ 		}
++
++		internal static void ReadRemainingRunestones(AccessibleComponent speaker)
++		{
++			var runestones = GetRunestoneBalance();
++			AccessibilityMgr.Output(speaker, LocalizationUtils.Format(LocalizationKey.UI_SHOP_PURCHASE_COMPLETE_RUNESTONES_REMAINING, runestones));
++		}
+ 	}
+ }
+diff --git a/Assembly-CSharp/AdventureProductPage.cs b/Assembly-CSharp/AdventureProductPage.cs
+index 8e85648..451f0ce 100644
+--- a/Assembly-CSharp/AdventureProductPage.cs
++++ b/Assembly-CSharp/AdventureProductPage.cs
+@@ -11,7 +11,7 @@ public class AdventureProductPage : ProductPage
+ 		{
+ 			m_container.OverrideMusic(MusicPlaylistType.Invalid);
+ 		}
+-		base.Open(false);
++		base.Open(true);
+ 	}
+ 
+ 	protected override void OnProductSet()
+diff --git a/Assembly-CSharp/MiniSetProductPage.cs b/Assembly-CSharp/MiniSetProductPage.cs
+index 60817f7..ab8a59c 100644
+--- a/Assembly-CSharp/MiniSetProductPage.cs
++++ b/Assembly-CSharp/MiniSetProductPage.cs
+@@ -92,7 +92,7 @@ public class MiniSetProductPage : ProductPage
+ 
+ 	protected override void SetupVariantMenuOptions(ProductDataModel variant)
+ 	{
+-		var buyText = AccessibleShopUtils.GetBuyForGoldText(variant);
++		var buyText = AccessibleShopUtils.GetBuyText(variant);
+ 
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_CARDS), () => ReadCards());
+diff --git a/Assembly-CSharp/ProductPage.cs b/Assembly-CSharp/ProductPage.cs
+index 30ef387..c3af42c 100644
+--- a/Assembly-CSharp/ProductPage.cs
++++ b/Assembly-CSharp/ProductPage.cs
+@@ -539,14 +539,31 @@ public class ProductPage : MonoBehaviour
+ 
+ 	protected void BuyVariant(ProductDataModel variant)
+ 	{
+-		if (!AccessibleShopUtils.HasEnoughGoldToBuyVariant(variant))
++		(var hasEnough, var currency) = AccessibleShopUtils.HasEnoughToBuyVariant(variant);
++
++		if (currency == CurrencyType.GOLD)
+ 		{
+-			AccessibilityMgr.Output(m_container, GameStrings.Get("GAMEPLAY_PlayErrors_REQ_ENOUGH_COIN"));
++			if (!hasEnough)
++			{
++				AccessibilityMgr.Output(m_container, GameStrings.Get("GAMEPLAY_PlayErrors_REQ_ENOUGH_COIN"));
++			}
++			else
++			{
++				var price = AccessibleShopUtils.GetGoldPriceOptionForVariant(variant);
++				TryBuy(price);
++			}
+ 		}
+-		else
++		else if (currency == CurrencyType.ROW_RUNESTONES)
+ 		{
+-			var priceOption = AccessibleShopUtils.GetGoldPriceOptionForVariant(variant);
+-			TryBuy(priceOption);
++			if (!hasEnough)
++			{
++				AccessibilityMgr.Output(m_container, LocalizationUtils.Get(LocalizationKey.UI_SHOP_NOT_ENOUGH_RUNESTONES));
++			}
++			else
++			{
++				var price = AccessibleShopUtils.GetRunestonePriceOptionForVariant(variant);
++				TryBuy(price);
++			}
+ 		}
+ 	}
+ 
+@@ -567,7 +584,7 @@ public class ProductPage : MonoBehaviour
+ 			return;
+ 		}
+ 
+-		if (AccessibleShopUtils.IsAvailable(product) && AccessibleShopUtils.CanVariantBeBoughtWithGold(product))
++		if (AccessibleShopUtils.IsAvailable(product) && AccessibleShopUtils.CanVariantBeBoughtWithGoldOrRunestones(product))
+ 		{
+ 			ChooseVariant(product, false);
+ 		}
+@@ -575,7 +592,7 @@ public class ProductPage : MonoBehaviour
+ 
+ 	private void ReadProductPageWithVariants(ProductDataModel product)
+ 	{
+-		var availableVariants = AccessibleShopUtils.GetVariantsWhichCanBeBoughtWithGold(product);
++		var availableVariants = AccessibleShopUtils.GetVariantsWhichCanBeBoughtWithGoldOrRunestones(product);
+ 
+ 		if (availableVariants.Count == 0)
+ 		{
+@@ -624,7 +641,7 @@ public class ProductPage : MonoBehaviour
+ 
+ 	protected virtual void SetupVariantMenuOptions(ProductDataModel variant)
+ 	{
+-		var buyText = AccessibleShopUtils.GetBuyForGoldText(variant);
++		var buyText = AccessibleShopUtils.GetBuyText(variant);
+ 
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
+ 		m_readingVariantMenu.AddOption(buyText, () => BuyVariant(variant));
+@@ -655,11 +672,12 @@ public class ProductPage : MonoBehaviour
+ 		if (purchaseSuccess)
+ 		{
+ 			ReadRemainingGold();
++			ReadRemainingRunestones();
+ 		}
+ 
+ 		if (m_curState == State.READING_VARIANT_MENU)
+ 		{
+-			if (!CanBuyWithGold())
++			if (!CanBuy())
+ 			{
+ 				// Close container if we bought a product that we can only buy once
+ 				m_container.Close(true);
+@@ -671,7 +689,7 @@ public class ProductPage : MonoBehaviour
+ 		}
+ 	}
+ 
+-	protected bool CanBuyWithGold()
++	protected bool CanBuy()
+ 	{
+ 		return AccessibleShopUtils.IsAvailable(m_container.Product);
+ 	}
+@@ -732,5 +750,10 @@ public class ProductPage : MonoBehaviour
+ 		AccessibleShopUtils.ReadRemainingGold(m_container);
+ 	}
+ 
++	protected void ReadRemainingRunestones()
++	{
++		AccessibleShopUtils.ReadRemainingRunestones(m_container);
++	}
++
+ 	#endregion
+ }
+diff --git a/Assembly-CSharp/SellableDeckProductPage.cs b/Assembly-CSharp/SellableDeckProductPage.cs
+index e0ec5ab..067552e 100644
+--- a/Assembly-CSharp/SellableDeckProductPage.cs
++++ b/Assembly-CSharp/SellableDeckProductPage.cs
+@@ -1,6 +1,7 @@
+ using System;
+ using System.Collections.Generic;
+ using System.Linq;
++using Accessibility;
+ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
+@@ -128,7 +129,7 @@ public class SellableDeckProductPage : ProductPage
+ 	public override void Open(bool isAccessible)
+ 	{
+ 		m_cardList = new ShopCardList(m_widget, m_scrollbar);
+-		base.Open(false);
++		base.Open(true);
+ 		base.OnOpened += InitInput;
+ 		if (m_variantStyle == VariantStyles.Class)
+ 		{
+@@ -424,4 +425,80 @@ public class SellableDeckProductPage : ProductPage
+ 		m_pageInfoDataModel.TotalPages = 4;
+ 		SetTextAndPageButtonStates(0);
+ 	}
++
++		#region Accessibility
++
++	private AccessibleListOfItems<AccessibleCollectibleCard> m_accessibleCards;
++
++	protected override void SetupVariantMenuOptions(ProductDataModel variant)
++	{
++		var buyText = AccessibleShopUtils.GetBuyText(variant);
++
++		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
++		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_CARDS), () => ReadCards());
++		m_readingVariantMenu.AddOption(buyText, () => BuyVariant(variant));
++	}
++
++	private void ReadCards()
++	{
++		var cardTiles = m_cardList.m_dataModel.CardTiles;
++
++		var accessibleCards = new List<AccessibleCollectibleCard>(cardTiles.Count);
++
++		foreach (var card in cardTiles)
++        {
++			var cardId = card.CardId;
++			var cardQty = card.Count;
++			var entityDef = DefLoader.Get().GetEntityDef(cardId);
++			var cardRecord = GameUtils.GetCardRecord(cardId);
++			var collectibleCard = new CollectibleCard(cardRecord, entityDef, TAG_PREMIUM.NORMAL);
++			collectibleCard.OwnedCount = cardQty;
++			var accessibleCollectibleCard = new AccessibleCollectibleCard(m_container, collectibleCard, true, true);
++
++			accessibleCards.Add(accessibleCollectibleCard);
++        }
++
++		m_accessibleCards = new AccessibleListOfItems<AccessibleCollectibleCard>(m_container, accessibleCards);
++		m_accessibleCards.StartReading();
++		m_curState = State.READING_CARDS;
++	}
++
++	public override void HandleAccessibleInput()
++	{
++		if (m_curState == State.READING_CARDS)
++		{
++			if (AccessibleKey.BACK.IsPressed())
++			{
++				ReadVariantMenu();
++			}
++			else
++			{
++				var curTile = m_scrollbar.m_scrollableItems[m_accessibleCards.GetItemBeingReadIndex()];
++				if (m_accessibleCards.HandleAccessibleInput())
++				{
++					AccessibilityUtils.CenterScrollbarAroundObject(m_scrollbar, curTile.gameObject);
++				}
++				AccessibleInputMgr.MoveMouseTo(curTile);
++			}
++		}
++		else
++		{
++			base.HandleAccessibleInput();
++		}
++	}
++
++	public override string GetAccessibleHelp()
++	{
++		if (m_curState == State.READING_CARDS)
++		{
++			return LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_CARDS_HELP);
++		}
++		else
++		{
++			return base.GetAccessibleHelp();
++		}
++	}
++
++	#endregion
++
+ }
+diff --git a/Assembly-CSharp/ShopBrowser.cs b/Assembly-CSharp/ShopBrowser.cs
+index b6da91e..da637b9 100644
+--- a/Assembly-CSharp/ShopBrowser.cs
++++ b/Assembly-CSharp/ShopBrowser.cs
+@@ -568,16 +568,16 @@ public class ShopBrowser : MonoBehaviour, IPopupRendering, AccessibleUI
+ 	private void ReadShop()
+ 	{
+ 		var slots = GetAllSlots();
+-		var slotsWhichCanBeBoughtWithGold = AccessibleShopUtils.FilterSlotsWhichCanBeBoughtWithGold(slots);
++		var slotsWhichCanBeBoughtWithGoldOrRunestones = AccessibleShopUtils.FilterSlotsWhichCanBeBoughtWithGoldOrRunestones(slots);
+ 
+ 		// Create categories for the main items
+-		m_availablePacks = GetCardPackSlots(slotsWhichCanBeBoughtWithGold);
+-		var availableMiniSets = GetMiniSetSlots(slotsWhichCanBeBoughtWithGold);
+-		var availableHeroSkins = GetHeroSkinSlots(slotsWhichCanBeBoughtWithGold);
+-		var availableBundles = GetBundleSlots(slotsWhichCanBeBoughtWithGold);
++		m_availablePacks = GetCardPackSlots(slotsWhichCanBeBoughtWithGoldOrRunestones);
++		var availableMiniSets = GetMiniSetSlots(slotsWhichCanBeBoughtWithGoldOrRunestones);
++		var availableHeroSkins = GetHeroSkinSlots(slotsWhichCanBeBoughtWithGoldOrRunestones);
++		var availableBundles = GetBundleSlots(slotsWhichCanBeBoughtWithGoldOrRunestones);
+ 
+ 		// Group everything else together in an "other" category
+-		var availableOthers = slotsWhichCanBeBoughtWithGold;
++		var availableOthers = slotsWhichCanBeBoughtWithGoldOrRunestones;
+ 		availableOthers.RemoveAll(m_availablePacks.Contains);
+ 		availableOthers.RemoveAll(availableMiniSets.Contains);
+ 		availableOthers.RemoveAll(availableHeroSkins.Contains);
+@@ -585,6 +585,7 @@ public class ShopBrowser : MonoBehaviour, IPopupRendering, AccessibleUI
+ 
+ 		m_accessibleShopMenu = new AccessibleMenu(this, "", () => Shop.Get().Close(true));
+ 		m_accessibleShopMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_GOLD), ReadGold);
++		m_accessibleShopMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_RUNESTONES), ReadRunestones);
+ 
+ 		if (m_availablePacks.Count > 0)
+ 		{
+@@ -764,6 +765,11 @@ public class ShopBrowser : MonoBehaviour, IPopupRendering, AccessibleUI
+ 		AccessibleShopUtils.ReadGold(this);
+ 	}
+ 
++	private void ReadRunestones()
++	{
++		AccessibleShopUtils.ReadRunestones(this);
++	}
++
+ 	private PackDataModel GetPackDataModel(ShopSlot pack)
+ 	{
+ 		var productDataModel = pack.m_productDataModel;
