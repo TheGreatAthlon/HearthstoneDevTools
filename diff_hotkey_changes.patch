@@ -1,0 +1,314 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibilityMgr.cs b/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
+index 2ddba76..4113740 100644
+--- a/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
++++ b/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
+@@ -629,6 +629,16 @@ namespace Accessibility
+             }
+         }
+ 
++        internal static void SetEnabled() // Enable with no announcement
++        {
++            s_enabled = true;
++        }
++
++        internal static void SetDisabled() // Disable with no announcement
++        {
++            s_enabled = false;
++        }
++
+         internal static bool IsCurrentlyFocused(AccessibleComponent component)
+         {
+             var curUI = GetFocusedUI();
+diff --git a/Assembly-CSharp/Accessibility/AccessibleInputMgr.cs b/Assembly-CSharp/Accessibility/AccessibleInputMgr.cs
+index 1abb2d8..786a224 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleInputMgr.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleInputMgr.cs
+@@ -29,6 +29,16 @@ namespace Accessibility
+                 ToggleAccessibility();
+             }
+ 
++            if (AccessibleKey.SILENTLY_ENABLE_ACCESSIBILITY.IsPressed())
++            {
++                SilentlyEnableAccessibility();
++            }
++
++            if (AccessibleKey.SILENTLY_DISABLE_ACCESSIBILITY.IsPressed())
++            {
++                SilentlyDisableAccessibility();
++            }
++
+             // Debug stuff
+             if (HearthstoneAccessConstants.DEV_MODE && Input.GetKeyUp(KeyCode.F6))
+             {
+@@ -43,6 +53,18 @@ namespace Accessibility
+             AccessibilityMgr.ToggleEnabled();
+         }
+ 
++        private void SilentlyEnableAccessibility()
++        {
++            AccessibleUnityInput.Get().SetEnabled();
++            AccessibilityMgr.SetEnabled();
++        }
++
++        private void SilentlyDisableAccessibility()
++        {
++            AccessibleUnityInput.Get().SetDisabled();
++            AccessibilityMgr.SetDisabled();
++        }
++
+         private static void ClickLeftMouseButtonImpl()
+         {
+             AccessibilityUtils.LogDebug($"[DBG] Clicked left mouse at {m_setMousePosition}");
+diff --git a/Assembly-CSharp/Accessibility/AccessibleKey.cs b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+index 6594547..e71bb78 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleKey.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+@@ -14,6 +14,8 @@ namespace Accessibility
+         public static AccessibleKey HELP = CreateGlobalKey(KeyCode.F1);
+         public static AccessibleKey OPEN_SOCIAL_MENU = CreateGlobalKey(KeyCode.F4);
+         public static AccessibleKey TOGGLE_ACCESSIBILITY = CreateGlobalKey(KeyCode.F8);
++        public static AccessibleKey SILENTLY_DISABLE_ACCESSIBILITY = CreateGlobalKey(KeyCode.F14, false, false, false, true);
++        public static AccessibleKey SILENTLY_ENABLE_ACCESSIBILITY = CreateGlobalKey(KeyCode.F15, false, false, false, true);
+         public static AccessibleKey READ_NEXT_LINE = CreateKey(KeyCode.DownArrow);
+         public static AccessibleKey READ_PREV_LINE = CreateKey(KeyCode.UpArrow);
+         public static AccessibleKey READ_CUR_LINE = CreateKey(KeyCode.UpArrow, true);
+@@ -32,7 +34,7 @@ namespace Accessibility
+         public static AccessibleKey SPACE = CreateKey(KeyCode.Space);
+         public static AccessibleKey ESC = CreateKey(KeyCode.Escape);
+ 
+-        public static AccessibleKey GLOBAL_FIND = CreateHotkey(KeyCode.F);
++        public static AccessibleKey GLOBAL_FIND = CreateKey(KeyCode.F, false, true);
+ 
+         public static AccessibleKey DECREASE_GAME_SPEED = CreateKey(KeyCode.F11);
+         public static AccessibleKey INCREASE_GAME_SPEED = CreateKey(KeyCode.F12);
+@@ -128,19 +130,31 @@ namespace Accessibility
+         public static AccessibleKey DEV_2 = CreateKey(KeyCode.Alpha2);
+         #endregion
+ 
+-        private bool m_requiresModifier;
++        private bool m_requiresShift;
+ 
+-        private bool m_isHotkey; // Hotkeys are ctrl+something
++        private bool m_requiresCtrl;
++
++        private bool m_requiresAlt;
++
++        private bool m_ignoreAllModifierKeys; // Takes precedence over the previous 3
+ 
+         private KeyCode m_keyCode;
+ 
+         private bool m_enabled;
+ 
+-		private AccessibleKey(KeyCode keyCode, bool requiresModifier = false, bool isHotkey = false)
++		private AccessibleKey(KeyCode keyCode, bool requiresShift = false, bool requiresCtrl = false, bool requiresAlt = false, bool ignoreAllModifierKeys = false)
+ 		{
+ 			m_keyCode = keyCode;
+-            m_requiresModifier = requiresModifier;
+-            m_isHotkey = isHotkey;
++            m_requiresShift = requiresShift;
++            m_requiresCtrl = requiresCtrl;
++            m_requiresAlt = requiresAlt;
++            m_ignoreAllModifierKeys = ignoreAllModifierKeys;
++            if (ignoreAllModifierKeys)
++            {
++                m_requiresShift = false;
++                m_requiresCtrl = false;
++                m_requiresAlt = false;
++            }
+             m_enabled = true;
+         }
+ 
+@@ -167,17 +181,41 @@ namespace Accessibility
+                 return false;
+             }
+ 
+-            if (m_isHotkey)
++            if (m_ignoreAllModifierKeys)
+             {
+-                return IsHoldingCtrl() && IsKeyUp(m_keyCode);
++                return IsKeyUp(m_keyCode);
+             }
+-            else if (m_requiresModifier)
++            else if (m_requiresShift && m_requiresCtrl && m_requiresAlt)
+             {
+-                return IsHoldingModifier() && IsKeyUp(m_keyCode);
++                return IsHoldingShift() && IsHoldingCtrl() && IsHoldingAlt() && IsKeyUp(m_keyCode);
+             }
+-            else
++            else if (m_requiresShift && m_requiresCtrl && !m_requiresAlt)
++            {
++                return IsHoldingShift() && IsHoldingCtrl() && !IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else if (m_requiresShift && !m_requiresCtrl && m_requiresAlt)
+             {
+-                return !IsHoldingModifier() && IsKeyUp(m_keyCode);
++                return IsHoldingShift() && !IsHoldingCtrl() && IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else if (m_requiresShift && !m_requiresCtrl && !m_requiresAlt)
++            {
++                return IsHoldingShift() && !IsHoldingCtrl() && !IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else if (!m_requiresShift && m_requiresCtrl && m_requiresAlt)
++            {
++                return !IsHoldingShift() && IsHoldingCtrl() && IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else if (!m_requiresShift && m_requiresCtrl && !m_requiresAlt)
++            {
++                return !IsHoldingShift() && IsHoldingCtrl() && !IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else if (!m_requiresShift && !m_requiresCtrl && m_requiresAlt)
++            {
++                return !IsHoldingShift() && !IsHoldingCtrl() && IsHoldingAlt() && IsKeyUp(m_keyCode);
++            }
++            else // No modifier keys are being pressed
++            {
++                return !IsHoldingShift() && !IsHoldingCtrl() && !IsHoldingAlt() && IsKeyUp(m_keyCode);
+             }
+         }
+ 
+@@ -199,13 +237,13 @@ namespace Accessibility
+                 return false;
+             }
+ 
+-            if (m_requiresModifier)
++            if (m_requiresShift)
+             {
+-                return IsHoldingModifier() && Input.GetKey(m_keyCode);
++                return IsHoldingShift() && Input.GetKey(m_keyCode);
+             }
+             else
+             {
+-                return !IsHoldingModifier() && Input.GetKey(m_keyCode);
++                return !IsHoldingShift() && Input.GetKey(m_keyCode);
+             }
+         }
+ 
+@@ -216,17 +254,17 @@ namespace Accessibility
+                 return false;
+             }
+ 
+-            if (m_requiresModifier)
++            if (m_requiresShift)
+             {
+-                return IsHoldingModifier() && Input.GetKeyDown(m_keyCode);
++                return IsHoldingShift() && Input.GetKeyDown(m_keyCode);
+             }
+             else
+             {
+-                return !IsHoldingModifier() && Input.GetKeyDown(m_keyCode);
++                return !IsHoldingShift() && Input.GetKeyDown(m_keyCode);
+             }
+         }
+ 
+-        private static bool IsHoldingModifier()
++        private static bool IsHoldingShift()
+         {
+             return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+         }
+@@ -236,13 +274,18 @@ namespace Accessibility
+             return Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+         }
+ 
++        private static bool IsHoldingAlt()
++        {
++            return Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
++        }
++
+         public override string ToString()
+         {
+-            if (m_isHotkey)
++            if (m_requiresCtrl)
+ 			{
+                 return LocalizationUtils.Format(LocalizationKey.INPUT_COMMAND_WITH_CTRL_FORMAT, ReadKey(m_keyCode));
+ 			}
+-            else if (m_requiresModifier)
++            else if (m_requiresShift)
+             {
+                 return LocalizationUtils.Format(LocalizationKey.INPUT_COMMAND_WITH_MODIFIER_FORMAT, ReadKey(m_keyCode));
+             }
+@@ -255,11 +298,11 @@ namespace Accessibility
+         public string ToEnglishString()
+         {
+             // Used for narrations only (a vs. eh)
+-            if (m_isHotkey)
++            if (m_requiresCtrl)
+ 			{
+                 return $"Ctrl + {ReadKeyInEnglish(m_keyCode)}";
+ 			}
+-            else if (m_requiresModifier)
++            else if (m_requiresShift)
+             {
+                 return $"Shift + {ReadKeyInEnglish(m_keyCode)}";
+             }
+@@ -304,45 +347,33 @@ namespace Accessibility
+             m_enabled = false;
+         }
+ 
+-        #region Key Registation
++        #region Key Registration
+         private static HashSet<AccessibleKey> s_allKeys;
+         private static HashSet<AccessibleKey> s_nonGlobalKeys;
+         private static HashSet<AccessibleKey> s_globalKeys;
+ 
+-        private static AccessibleKey CreateKey(KeyCode keyCode, bool requiresModifier=false)
++        private static AccessibleKey CreateKey(KeyCode keyCode, bool requiresShift=false, bool requiresCtrl = false, bool requiresAlt = false, bool ignoreAllModifierKeys = false)
+         {
+             InitializeKeySetsIfNeeded();
+ 
+-            var newKey = new AccessibleKey(keyCode, requiresModifier);
++            var newKey = new AccessibleKey(keyCode, requiresShift, requiresCtrl, requiresAlt, ignoreAllModifierKeys);
+             s_allKeys.Add(newKey);
+             s_nonGlobalKeys.Add(newKey);
+ 
+             return newKey;
+         }
+ 
+-        private static AccessibleKey CreateGlobalKey(KeyCode keyCode, bool requiresModifier=false)
++        private static AccessibleKey CreateGlobalKey(KeyCode keyCode, bool requiresShift=false, bool requiresCtrl = false, bool requiresAlt = false, bool ignoreAllModifierKeys = false)
+         {
+             InitializeKeySetsIfNeeded();
+ 
+-            var newKey = new AccessibleKey(keyCode, requiresModifier);
++            var newKey = new AccessibleKey(keyCode, requiresShift, requiresCtrl, requiresAlt, ignoreAllModifierKeys);
+             s_allKeys.Add(newKey);
+             s_globalKeys.Add(newKey);
+ 
+             return newKey;
+         }
+ 
+-        private static AccessibleKey CreateHotkey(KeyCode keyCode)
+-        {
+-            // Hotkeys area always ctrl+something
+-            InitializeKeySetsIfNeeded();
+-
+-            var newKey = new AccessibleKey(keyCode, false, true);
+-            s_allKeys.Add(newKey);
+-            s_nonGlobalKeys.Add(newKey);
+-
+-            return newKey;
+-        }
+-
+         private static void InitializeKeySetsIfNeeded()
+         {
+             if (s_allKeys == null)
+diff --git a/Assembly-CSharp/Accessibility/AccessibleUnityInput.cs b/Assembly-CSharp/Accessibility/AccessibleUnityInput.cs
+index 0306ff0..d20d1e6 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleUnityInput.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleUnityInput.cs
+@@ -125,6 +125,16 @@ public class AccessibleUnityInput : IInput
+ 		m_enabled = !m_enabled;
+     }
+ 
++	internal void SetEnabled()
++	{
++		m_enabled = true;
++	}
++
++	internal void SetDisabled()
++	{
++		m_enabled = false;
++	}
++
+ 	private bool IsValidButton(int button)
+     {
+ 		return button >= 0 && button <= 2;

@@ -1,0 +1,78 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index 679e83f..527a037 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -500,10 +500,11 @@ namespace Accessibility
+                     return;
+                 case AccessibleGameState.CHOICE_MODE:
+                     HandleCheckStatusKeys();
+-                    HandleChoiceMode();
++                    bool canHandleChoiceMode=HandleChoiceMode();
++                    if(!canHandleChoiceMode) HandleTargetMode();
+                     return;
+                 case AccessibleGameState.TARGET_MODE:
+-                    HandleCardReadingInput();
++                    //HandleCardReadingInput();
+                     HandleCheckStatusKeys();
+                     HandleTargetMode();
+                     return;
+@@ -514,7 +515,7 @@ namespace Accessibility
+                     HandleTradeCardWhenHoldingCardInput();
+                     return;
+                 case AccessibleGameState.PLAYING_CARD:
+-                    HandleCardReadingInput();
++                    //HandleCardReadingInput();
+                     HandleCheckStatusKeys();
+                     HandlePlayingCard();
+                     HandleTradeCardWhenHoldingCardInput();
+@@ -982,12 +983,11 @@ namespace Accessibility
+             HandleChoiceMode();
+         }
+ 
+-        protected void HandleChoiceMode()
++        protected bool HandleChoiceMode()
+         {
+             if (m_accessibleChoiceCards == null || !m_accessibleChoiceCards.IsReading())
+             {
+-                HandleTargetMode();//cludgy workaround
+-                return; // yield
++                return false; // yield
+             }
+             try
+             {
+@@ -1007,12 +1007,13 @@ namespace Accessibility
+             {
+                 m_accessibleChoiceCards.HandleAccessibleInput();
+             }
++            return true;
+         }
+ 
+         protected void HandleTargetMode()
+         {
+             //if (m_prevState != AccessibleGameState.TARGET_MODE) // Was broken due to play
+-            if (m_prevResponseMode != m_curResponseMode)
++            if (m_prevResponseMode != m_curResponseMode&&m_curResponseMode!=GameState.ResponseMode.CHOICE)
+             {
+                 AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_CHOOSE_TARGET));
+ 
+@@ -1022,10 +1023,10 @@ namespace Accessibility
+                 }
+             }
+ 
+            HandleZoneInput();
++                            HandleCardReadingInput();
+             HandleValidOptionsSelectionInput();
+             HandleZoneSelection(true);
+-
+             HandleConfirmOrCancel(true);
+         }
+ 
+@@ -1112,7 +1113,7 @@ namespace Accessibility
+             {
+                 m_curState = AccessibleGameState.CHOICE_MODE;
+             }
+-            else if (GameState.Get().IsInTargetMode())
++            else if (GameState.Get().IsInTargetMode()||m_curResponseMode==GameState.ResponseMode.OPTION_TARGET)
+             {
+                 m_curState = AccessibleGameState.TARGET_MODE;
+             }

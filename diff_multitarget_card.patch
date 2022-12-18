@@ -1,0 +1,12 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index c8f9023..679e83f 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -986,6 +986,7 @@ namespace Accessibility
+         {
+             if (m_accessibleChoiceCards == null || !m_accessibleChoiceCards.IsReading())
+             {
++                HandleTargetMode();//cludgy workaround
+                 return; // yield
+             }
+             try
