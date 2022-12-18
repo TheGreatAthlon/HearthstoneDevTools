@@ -1,0 +1,81 @@
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsPartyAnnouncements.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsPartyAnnouncements.cs
+new file mode 100644
+index 0000000..75a5df1
+--- /dev/null
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsPartyAnnouncements.cs
+@@ -0,0 +1,41 @@
++using System;
++using System.Collections.Generic;
++using Blizzard.GameService.SDK.Client.Integration;
++
++namespace Accessibility
++{
++    class AccessibleBattlegroundsPartyAnnouncements
++    {
++		private static AccessibleBattlegroundsPartyAnnouncements s_instance;
++
++		internal static AccessibleBattlegroundsPartyAnnouncements Get()
++		{
++			if (s_instance == null)
++			{
++				s_instance = new AccessibleBattlegroundsPartyAnnouncements();
++			}
++
++			return s_instance;
++		}
++        public static void AnnounceEvent(PartyManager.PartyInviteEvent inviteEvent, BnetGameAccountId playerGameAccountId, PartyManager.PartyData data, object userData) {
++            string name=BnetUtils.GetPlayerBestName(playerGameAccountId);
++            LocalizationKey localizationStr=null;
++		    switch (inviteEvent)
++		    {
++                		case PartyManager.PartyInviteEvent.FRIEND_ACCEPTED_INVITE:
++                        localizationStr=LocalizationKey.BATTLEGROUNDS_PARTY_PLAYER_JOINED;
++                break;
++                		case PartyManager.PartyInviteEvent.FRIEND_DECLINED_INVITE:
++                                        localizationStr=LocalizationKey.BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE;
++                                        break;
++		case PartyManager.PartyInviteEvent.INVITE_EXPIRED:
++		case PartyManager.PartyInviteEvent.FRIEND_LEFT:
++                localizationStr=LocalizationKey.BATTLEGROUNDS_PARTY_PLAYER_LEFT;
++                break;
++            }
++            if(localizationStr!=null) {
++                AccessibilityMgr.Output(null, LocalizationUtils.Format(localizationStr,name));
++            }
++        }
++	}
++}
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 8d13cf8..13bfc3f 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -446,6 +446,9 @@ public class LocalizationKey
+ 
+     // Battlegrounds
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_READ_CARD_TIER = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_CARD_TIER");
++        public static LocalizationKey BATTLEGROUNDS_PARTY_PLAYER_JOINED = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_JOINED");
++                public static LocalizationKey BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE");
++                        public static LocalizationKey BATTLEGROUNDS_PARTY_PLAYER_LEFT = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_LEFT");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_READ_CARD_COST = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_CARD_COST");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_READ_CARD_PREMIUM_GOLDEN = CreateKey("GLUE_MASS_DISENCHANT_PREMIUM_TITLE");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_RECRUIT_PHASE = CreateKey("GLUE_BACON_INFO_POPUP_RECRUIT");
+diff --git a/Assembly-CSharp/BaconParty.cs b/Assembly-CSharp/BaconParty.cs
+index c2d8e57..0d5d180 100644
+--- a/Assembly-CSharp/BaconParty.cs
++++ b/Assembly-CSharp/BaconParty.cs
+@@ -5,6 +5,7 @@ using Blizzard.GameService.SDK.Client.Integration;
+ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
++using Accessibility;
+ 
+ public class BaconParty : MonoBehaviour
+ {
+@@ -203,6 +204,7 @@ public class BaconParty : MonoBehaviour
+ 	private void OnPartyChanged(PartyManager.PartyInviteEvent inviteEvent, BnetGameAccountId playerGameAccountId, PartyManager.PartyData data, object userData)
+ 	{
+ 		Log.Party.PrintDebug("BaconParty.OnPartyChanged(): Event={0}, gameAccountId={1}", inviteEvent, playerGameAccountId);
++		AccessibleBattlegroundsPartyAnnouncements.AnnounceEvent(inviteEvent, playerGameAccountId, data, userData);
+ 		switch (inviteEvent)
+ 		{
+ 		case PartyManager.PartyInviteEvent.I_SENT_INVITE:
