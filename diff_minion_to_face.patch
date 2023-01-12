@@ -1,0 +1,261 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index 3f1d053..ef8d036 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -31,6 +31,7 @@ namespace Accessibility
+             CONFIRMING_END_TURN,
+             BROWSING_HISTORY,
+             ALL_MINIONS_TO_FACE,
++            MINION_TO_FACE,
+ 
+             // Battlegrounds-only
+             BUYING_MINION,
+@@ -63,6 +64,8 @@ namespace Accessibility
+ 
+         private bool m_sendingAllMinionsToFace;
+         private Card m_curFaceAttacker;
++        private bool m_sendingMinionToFace;
++        private int m_minionAttackState;
+ 
+         private float m_nextAction = 0; // Needed to circumvent a lot of frame-related issues that would arise otherwise
+ 
+@@ -233,6 +236,8 @@ namespace Accessibility
+             m_confirmingEndTurn = false;
+             m_sendingAllMinionsToFace = false;
+             m_curFaceAttacker = null;
++            m_sendingMinionToFace = false;
++            m_minionAttackState = 0;
+             m_nextAction = 0;
+             m_accessibleChoiceCards = null;
+             m_zoneSelectedListeners.Clear();
+@@ -441,6 +446,11 @@ namespace Accessibility
+                 HandleAllMinionsToFace();
+                 return;
+             }
++            else if (m_curState == AccessibleGameState.MINION_TO_FACE)
++            {
++                HandleMinionToFace();
++                return;
++            }
+             else if (m_curState == AccessibleGameState.TRADING_CARD)
+             {
+                 HandleTradingCard();
+@@ -563,9 +573,34 @@ namespace Accessibility
+             }
+         }
+ 
+-        private void SetNextAction()
++        private void HandleMinionToFace()
+         {
+-            m_nextAction = Time.time + 1f;
++            if (Time.time < m_nextAction)
++            {
++                return;
++            }
++
++            if (m_minionAttackState == 0)
++            {
++                ClickCard(m_cardBeingRead.GetCard());
++                m_minionAttackState = 1;
++                SetNextAction(0.1f);
++            }
++            else if (m_minionAttackState == 1)
++            {
++                ClickCard(GameState.Get().GetOpposingSidePlayer().GetHeroCard());
++                m_minionAttackState = 2;
++            }
++            else
++            {
++                m_minionAttackState = 0;
++                m_sendingMinionToFace = false;
++            }
++        }
++
++        private void SetNextAction(float delay = 1f)
++        {
++            m_nextAction = Time.time + delay;
+         }
+ 
+         private void ClickCard(Card card)
+@@ -836,10 +871,14 @@ namespace Accessibility
+                 }
+                 else
+                 {
+-                    if (GameState.Get().GetFriendlySidePlayer().HasReadyAttackers())
++                    if (PlayerHasReadyAttackers() || PlayerHeroCanStillAttack())
+                     {
+                         AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_QUERY_END_TURN_WHEN_CAN_ATK));
+                     }
++                    else if (PlayerHasReadyLocations())
++                    {
++                        AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_LOCATION));
++                    }
+                     else if (PlayerCanStillUseHeroPower())
+                     {
+                         AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_HERO_POWER));
+@@ -855,6 +894,45 @@ namespace Accessibility
+             }
+         }
+ 
++        private bool PlayerHasReadyAttackers()
++        {
++            List<Card> cards = GameState.Get().GetFriendlySidePlayer().GetBattlefieldZone().GetCards();
++
++            for (int i = 0; i < cards.Count; i++)
++            {
++                if (cards[i].GetEntity().IsMinion() && GameState.Get().HasResponse(cards[i].GetEntity()))
++                {
++                    return true;
++                }
++            }
++            return false;
++        }
++
++        private bool PlayerHeroCanStillAttack()
++        {
++            var player = GameState.Get().GetFriendlySidePlayer();
++
++            if (GameState.Get().HasResponse(player.GetHero()))
++            {
++                return true;
++            }
++            return false;
++        }
++
++        private bool PlayerHasReadyLocations()
++        {
++            List<Card> cards = GameState.Get().GetFriendlySidePlayer().GetBattlefieldZone().GetCards();
++
++            for (int i = 0; i < cards.Count; i++)
++            {
++                if (cards[i].GetEntity().IsLocation() && GameState.Get().HasResponse(cards[i].GetEntity()))
++                {
++                    return true;
++                }
++            }
++            return false;
++        }
++
+         private bool PlayerCanStillUseHeroPower()
+         {
+             var player = GameState.Get().GetFriendlySidePlayer();
+@@ -875,6 +953,11 @@ namespace Accessibility
+                 SendAllMinionsToFace();
+                 return;
+             }
++            else if (AccessibleKey.SEND_MINION_TO_FACE.IsPressed())
++            {
++                SendMinionToFace();
++                return;
++            }
+ 
+             HandleZoneInput();
+             HandleValidOptionsSelectionInput();
+@@ -923,6 +1006,46 @@ namespace Accessibility
+             }
+         }
+ 
++        private void SendMinionToFace()
++        {
++            if (m_cardBeingRead == null)
++            {
++                return;
++            }
++
++            if (m_cardBeingRead.GetCard().GetZone() != GameState.Get().GetFriendlySidePlayer().GetBattlefieldZone())
++            {
++                AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_SEND_TO_FACE_NOT_FRIENDLY_MINION));
++                return;
++            }
++
++            if (!m_cardBeingRead.GetCard().GetEntity().IsMinion())
++            {
++                AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_SEND_TO_FACE_NOT_MINION));
++                return;
++            }
++
++            if (!IsValidFaceAttacker(m_cardBeingRead.GetCard()))
++            {
++                AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_SEND_TO_FACE_NOT_VALID_ATTACKER));
++                return;
++            }
++
++            if (!GameState.Get().GetOpposingSidePlayer().GetHero().CanBeAttacked())
++            {
++                AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_ATTACKED));
++                return;
++            }
++
++            if (!GameState.Get().GetOpposingSidePlayer().GetHero().CanBeTargetedByOpponents())
++            {
++                AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_TARGETED));
++                return;
++            }
++
++            m_sendingMinionToFace = true;
++        }
++
+         public void OnReconnected()
+         {
+             AccessibilityMgr.InterruptTexts();
+@@ -972,6 +1095,11 @@ namespace Accessibility
+             return ret;
+         }
+ 
++        private bool IsValidFaceAttacker(Card minion)
++        {
++            return GetValidFaceAttackers().Contains(minion);
++        }
++
+         private void EndTurn()
+         {
+             InputManager.Get().DoEndTurnButton();
+@@ -1073,11 +1201,16 @@ namespace Accessibility
+             {
+                 m_curState = AccessibleGameState.OPPONENT_TURN;
+                 m_sendingAllMinionsToFace = false;
++                m_sendingMinionToFace = false;
+             }
+             else if (m_sendingAllMinionsToFace)
+             {
+                 m_curState = AccessibleGameState.ALL_MINIONS_TO_FACE;
+             }
++            else if (m_sendingMinionToFace)
++            {
++                m_curState = AccessibleGameState.MINION_TO_FACE;
++            }
+             else if (m_tradingCard)
+             {
+                 m_curState = AccessibleGameState.TRADING_CARD;
+diff --git a/Assembly-CSharp/Accessibility/AccessibleKey.cs b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+index e725e8c..c52fa35 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleKey.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+@@ -90,6 +90,7 @@ namespace Accessibility
+         public static AccessibleKey SEE_OPPONENT_MINIONS = CreateKey(KeyCode.G);
+         public static AccessibleKey SEE_OPPONENT_HERO = CreateKey(KeyCode.F);
+         public static AccessibleKey SEND_ALL_MINIONS_TO_FACE = CreateKey(KeyCode.F, true);
++        public static AccessibleKey SEND_MINION_TO_FACE = CreateKey(KeyCode.F, false, true);
+         public static AccessibleKey SEE_PLAYER_HERO = CreateKey(KeyCode.V);
+         public static AccessibleKey SEE_PLAYER_HERO_POWER = CreateKey(KeyCode.R);
+         public static AccessibleKey SEE_OPPONENT_HERO_POWER = CreateKey(KeyCode.R, true);
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 3672974..11f5f40 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -200,11 +200,15 @@ public class LocalizationKey
+     public static LocalizationKey GAMEPLAY_QUERY_TRADE_CARD = CreateKey("ACCESSIBILITY_GAMEPLAY_QUERY_TRADE_CARD");
+     public static LocalizationKey GAMEPLAY_QUERY_END_TURN_WHEN_VALID_PLAYS = CreateKey("ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_VALID_PLAYS");
+     public static LocalizationKey GAMEPLAY_QUERY_END_TURN_WHEN_CAN_ATK = CreateKey("ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_CAN_ATK");
++    public static LocalizationKey GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_LOCATION = CreateKey("ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_LOCATION");
+     public static LocalizationKey GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_HERO_POWER = CreateKey("ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_HERO_POWER");
+     public static LocalizationKey GAMEPLAY_SEND_TO_FACE_NO_MINIONS = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_NO_MINIONS");
+     public static LocalizationKey GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_ATTACKED = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_ATTACKED");
+     public static LocalizationKey GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_TARGETED = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_HERO_CANT_BE_TARGETED");
+     public static LocalizationKey GAMEPLAY_SEND_TO_FACE_HERO_NO_VALID_ATTACKERS = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_HERO_NO_VALID_ATTACKERS");
++    public static LocalizationKey GAMEPLAY_SEND_TO_FACE_NOT_FRIENDLY_MINION = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_NOT_FRIENDLY_MINION");
++    public static LocalizationKey GAMEPLAY_SEND_TO_FACE_NOT_MINION = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_NOT_MINION");
++    public static LocalizationKey GAMEPLAY_SEND_TO_FACE_NOT_VALID_ATTACKER = CreateKey("ACCESSIBILITY_GAMEPLAY_SEND_TO_FACE_NOT_VALID_ATTACKER");
+     public static LocalizationKey GAMEPLAY_CHOOSE_TARGET = CreateKey("ACCESSIBILITY_GAMEPLAY_CHOOSE_TARGET");
+     public static LocalizationKey GAMEPLAY_CHOOSE_ONE = CreateKey("GAMEPLAY_CHOOSE_ONE");
+     public static LocalizationKey GAMEPLAY_N_SECONDS_REMAINING = CreateKey("ACCESSIBILITY_GAMEPLAY_N_SECONDS_REMAINING");

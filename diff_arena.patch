@@ -1,0 +1,602 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs b/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
+index 9259009..538ff3c 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
+@@ -40,7 +40,7 @@ namespace Accessibility
+         private void SetupMainMenu()
+         {
+             m_mainMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_CHOOSE_MODE), OnClickBackButton);
+-
++            m_mainMenu.AddOption(LocalizedText.MODES_ARENA_OPTION, OnClickArena);
+             m_mainMenu.AddOption(LocalizedText.MODES_SOLO_ADVENTURES_OPTION, OnClickSoloAdventures);
+             m_mainMenu.AddOption(LocalizedText.SCREEN_GO_BACK, OnClickBackButton);
+ 
+@@ -65,6 +65,18 @@ namespace Accessibility
+             GameModeDisplay.Get().m_playButton.TriggerRelease();
+         }
+ 
++        private void OnClickArena()
++        {
++            var arenaButton = GetArenaButton();
++
++            if (arenaButton == null)
++            {
++                AccessibilityUtils.LogFatalError(new Exception("Could not find arena button"));
++            }
++
++            GameModeDisplay.Get().SelectMode(arenaButton);
++            GameModeDisplay.Get().m_playButton.TriggerRelease();
++        }
+         private GameModeButtonDataModel GetSoloAdventuresButton()
+         {
+             foreach (var button in m_gameModeSceneDataModel.GameModeButtons)
+@@ -78,6 +90,19 @@ namespace Accessibility
+             return null;
+         }
+ 
++        private GameModeButtonDataModel GetArenaButton()
++        {
++            foreach (var button in m_gameModeSceneDataModel.GameModeButtons)
++            {
++                if (button.GameModeRecordId == 1)
++                {
++                    return button;
++                }
++            }
++
++            return null;
++        }
++
+         public void HandleInput()
+         {
+             if (m_curState == State.MAIN_MENU)
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index f5614d8..3672974 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -47,6 +47,7 @@ public class LocalizationKey
+ 
+     // Global
+     public static LocalizationKey GLOBAL_SOLO_ADVENTURES = CreateKey("GLUE_ADVENTURE");
++        public static LocalizationKey GLOBAL_ARENA    = CreateKey("ACCESSIBILITY_MODES_ARENA");
+     public static LocalizationKey GLOBAL_BATTLEGROUNDS = CreateKey("GLUE_BACON");
+     public static LocalizationKey GLOBAL_GAME_MODES = CreateKey("GLUE_GAME_MODES");
+     public static LocalizationKey GLOBAL_CHOOSE_MODE = CreateKey("GLUE_GAME_MODES_POPUP_HEADER");
+@@ -984,6 +985,11 @@ public class LocalizationKey
+     public static LocalizationKey BATTLEGROUNDS_TUTORIAL_READ_TIME_REMAINING = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_TUTORIAL_READ_TIME_REMAINING");
+     public static LocalizationKey BATTLEGROUNDS_TUTORIAL_SUMMON_MINION_HELP = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_TUTORIAL_SUMMON_MINION_HELP");
+ 
++    //arena
++        public static LocalizationKey ARENA_DRAFT_SWITCH_HELP = CreateKey("ACCESSIBILITY_ARENA_DRAFT_SWITCH_HELP");
++                public static LocalizationKey ARENA_WINS_LOSSES = CreateKey("ACCESSIBILITY_ARENA_WINS_LOSSES");
++                public static LocalizationKey ARENA_TICKETS_COUNT = CreateKey("ACCESSIBILITY_ARENA_TICKETS_COUNT");
++
+ 
+     public string Key { get; private set; }
+ 
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs b/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
+index f23f414..e313e65 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
+@@ -22,6 +22,7 @@ class LocalizedText
+     // Modes
+     public static string MODES_MENU_TITLE => LocalizationUtils.Get(LocalizationKey.GLOBAL_CHOOSE_MODE);
+     public static string MODES_SOLO_ADVENTURES_OPTION => LocalizationUtils.Get(LocalizationKey.GLOBAL_SOLO_ADVENTURES);
++        public static string MODES_ARENA_OPTION => LocalizationUtils.Get(LocalizationKey.GLOBAL_ARENA);
+ 
+     // Global
+     public static string GLOBAL_GAME_LOADED => LocalizationUtils.Get(LocalizationKey.GLOBAL_GAME_LOADED);
+diff --git a/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs
+new file mode 100644
+index 0000000..5b857fd
+--- /dev/null
++++ b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs
+@@ -0,0 +1,132 @@
++using Assets;
++using System;
++using System.Collections.Generic;
++
++namespace Accessibility
++{
++    class AccessibleArenaDisplay : AccessibleScreen
++    {
++        internal enum State {CLASS_CHOICE, DRAFT_CHOICE, DECK_VIEW, MANA_CURVE_VIEW, IDLE_SCREEN, CLAIM_REWARDS_SCREEN, LOADING}
++
++        internal static State m_curState = State.LOADING;
++	    private static AccessibleHorizontalMenu<AccessibleArenaDraftCard> m_accessibleDeckView;
++	    private static AccessibleHorizontalMenu<AccessibleArenaDraftCard> m_accessibleDraftChoices; 
++            private static AccessibleArenaDisplay s_instance = new AccessibleArenaDisplay();
++            private static int m_deckViewIndex=0;
++private static AccessibleMenu m_idleMenu;
++private static bool m_isDrafting=false;
++
++        internal static AccessibleArenaDisplay Get()
++        {
++            return s_instance;
++        }
++        internal static void OnDraftScreenShown() {
++
++        }
++
++        public static void ArenaIdleMenu() {
++            if(m_curState==State.DECK_VIEW) return;
++            m_curState=State.IDLE_SCREEN;
++        m_isDrafting=false;
++            m_idleMenu=new AccessibleMenu(null, DraftManager.Get().GetSceneHeadlineText(),() => DraftDisplay.Get().m_backButton.TriggerRelease());
++            m_idleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.ARENA_WINS_LOSSES,DraftManager.Get().GetWins(),DraftManager.Get().GetLosses()),null);
++            if(DraftDisplay.Get().m_playButton.IsEnabled()) {
++                m_idleMenu.AddOption(DraftDisplay.Get().m_playButton.m_newPlayButtonText.Text,() => DraftDisplay.Get().m_playButton.TriggerRelease());
++            }
++            m_idleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION),() => BuildDeckView());
++                        if(DraftDisplay.Get().m_retireButton.IsEnabled()) {
++                m_idleMenu.AddOption(DraftDisplay.Get().m_retireButton.m_buttonText.Text,() => DraftDisplay.Get().m_retireButton.TriggerRelease());
++            }
++            m_idleMenu.StartReading();
++        }
++
++        public static void BuildDeckView() {
++            m_curState=State.DECK_VIEW;
++            CollectionDeck draftDeck = DraftManager.Get().GetDraftDeck();   
++            List<CollectionDeckSlot> cards=draftDeck.GetSlots();
++            string menuTitle=LocalizationUtils.Format(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK,draftDeck.GetTotalCardCount(), draftDeck.GetMaxCardCount());
++            m_accessibleDeckView= new AccessibleHorizontalMenu<AccessibleArenaDraftCard>(null, menuTitle, () => GoBackFromDeckView());
++            for(int i=0; i<cards.Count; i++) {
++                                                AccessibleArenaDraftCard newCard=new AccessibleArenaDraftCard(null, cards[i].GetEntityDef(),cards[i].Count);
++                                                                                m_accessibleDeckView.AddOption(newCard,null);
++    }
++    m_accessibleDeckView.StartReading();
++}
++
++        private static void GoBackFromDeckView() {
++            if(!m_isDrafting) {
++                m_curState=State.IDLE_SCREEN;
++                ArenaIdleMenu();
++            }
++            else {
++                DraftDisplay.Get().m_backButton.TriggerRelease();
++            }
++        }
++
++        public static void BuildDraftChoicesList(List<DraftDisplay.DraftChoice> cards) {
++            m_curState=State.DRAFT_CHOICE;
++            m_isDrafting=true;
++            m_accessibleDraftChoices= new AccessibleHorizontalMenu<AccessibleArenaDraftCard>(null, "",() => DraftDisplay.Get().m_backButton.TriggerRelease());
++            List<DraftCardVisual> visuals=DraftDisplay.Get().GetCardVisuals();
++            for(int i=0; i<cards.Count; i++) {
++                DraftCardVisual v=visuals[i];
++                bool badTry=true;
++                var c=cards[i].m_actor;
++                if(c==null) c=cards[i].m_subActor;
++                                                AccessibleArenaDraftCard newCard=new AccessibleArenaDraftCard(null, c.GetEntityDef());
++                                m_accessibleDraftChoices.AddOption(newCard,() => v.ChooseThisCard());
++            }
++
++            m_accessibleDraftChoices.StartReading();
++        }
++
++        public void OnGainedFocus() {
++            if(m_curState==State.DRAFT_CHOICE) {
++                m_accessibleDraftChoices.StartReading();
++            }
++            if(m_curState==State.DECK_VIEW) {
++                m_accessibleDeckView.StartReading();
++            }
++            if(m_curState==State.IDLE_SCREEN) {
++                m_idleMenu.StartReading();
++            }
++
++        }
++
++        public void HandleInput() {
++            if(m_curState==State.DRAFT_CHOICE) {
++                m_accessibleDraftChoices.HandleAccessibleInput();
++            }
++            if(m_curState==State.IDLE_SCREEN) {
++                m_idleMenu.HandleAccessibleInput();
++            }
++                        if(m_curState==State.DECK_VIEW) {
++                m_accessibleDeckView.HandleAccessibleInput();
++            }
++if(AccessibleKey.READ_NEXT_VALID_MENU_OPTION.IsPressed()) {
++            if(m_curState==State.DRAFT_CHOICE) {
++                BuildDeckView();
++            }
++else if(m_curState==State.DECK_VIEW&&m_isDrafting) {
++    m_curState=State.DRAFT_CHOICE;
++                m_accessibleDraftChoices.StartReading();
++            }
++
++            }
++        }
++
++        public string GetHelp() {
++            string ret="";
++            if(m_isDrafting) {
++                ret+=LocalizationUtils.Format(LocalizationKey.ARENA_DRAFT_SWITCH_HELP,AccessibleKey.READ_NEXT_VALID_ITEM);
++            }
++            if(m_curState==State.DRAFT_CHOICE) {
++                ret+=m_accessibleDraftChoices?.GetHelp();
++            }
++            if(m_curState==State.DECK_VIEW) {
++                ret+=m_accessibleDeckView?.GetHelp();
++            }
++            return ret;
++        }
++    }
++}
+\ No newline at end of file
+diff --git a/Assembly-CSharp/Accessibility/arena/AccessibleArenaDraftCard.cs b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDraftCard.cs
+new file mode 100644
+index 0000000..c21d47a
+--- /dev/null
++++ b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDraftCard.cs
+@@ -0,0 +1,214 @@
++using System;
++using System.Collections.Generic;
++
++namespace Accessibility
++{
++    class AccessibleArenaDraftCard : AccessibleItem
++    {
++        private readonly EntityDef m_entityDef;
++
++        private bool m_readClass;
++
++        private bool m_countOverride=true;
++        private int m_count;
++        internal AccessibleArenaDraftCard(AccessibleComponent parent, EntityDef def, int count=1) : base(parent)
++        {
++            m_entityDef=def;
++            m_count=count;
++        }
++
++        internal override List<string> GetLines()
++        {
++            switch (m_entityDef.GetCardType())
++            {
++                case TAG_CARDTYPE.HERO:
++                    return GetLinesForHero();
++                case TAG_CARDTYPE.HERO_POWER:
++                    return GetLinesForHeroPower();
++                case TAG_CARDTYPE.WEAPON:
++                case TAG_CARDTYPE.ENCHANTMENT:
++                case TAG_CARDTYPE.MINION:
++                case TAG_CARDTYPE.SPELL:
++                    return GetLinesForNormalCard();
++                default:
++                    Log.Accessibility.PrintError($"AccessibleCollectibleCard: Found unhandled CardType {m_entityDef.GetCardType()}");
++                    return GetLinesForNormalCard();
++            }
++        }
++
++        private List<string> GetLinesForHero()
++        {
++            if (m_entityDef.IsHeroSkin())
++            {
++                return GetLinesForHeroSkin();
++            }
++            else if (m_entityDef.GetArmor() > 0) // TODO: Figure out how we can differentiate this as this is a wild guess
++            {
++                return GetLinesForHeroCard();
++            }
++            else
++            {
++                // Generic default just in case we're missing something
++                var lines = new List<string>();
++                lines.Add(GetName());
++
++                AccessibleCardUtils.AddLineIfExists(GetResources(), lines);
++
++                return lines;
++            }
++        }
++
++        private List<string> GetLinesForHeroCard()
++        {
++            var lines = new List<string>();
++            lines.Add(GetName());
++
++            if (m_readClass)
++			{
++                lines.Add(GetClassName());
++			}
++            lines.Add(GetCost());
++            lines.Add(GetCardType());
++
++            var armor = m_entityDef.GetArmor();
++
++            lines.Add(LocalizationUtils.Format(LocalizationKey.READ_HERO_CARD_ARMOR, armor));
++
++            AccessibleCardUtils.AddLineIfExists(GetDescription(), lines);
++
++            try
++            {
++                lines.AddRange(AccessibleCardUtils.GetHeroPowerCardLinesForHeroCard(m_entityDef.GetCardId()));
++            }
++            catch (Exception e)
++            {
++                AccessibilityUtils.LogFatalError(e);
++            }
++
++            AccessibleCardUtils.AddLineIfExists(GetRarity(), lines);
++
++            return lines;
++        }
++
++		private string GetClassName()
++		{
++			return GameStrings.GetClassName(m_entityDef.GetClass());
++		}
++
++		private List<string> GetLinesForHeroSkin()
++        {
++            var lines = new List<string>();
++            lines.Add(GetName());
++
++                lines.Add(GetClassName());
++            return lines;
++        }
++
++		private List<string> GetLinesForHeroPower()
++        {
++            var lines = new List<string>();
++            lines.Add(GetName());
++            lines.Add(GetCost());
++
++            AccessibleCardUtils.AddLineIfExists(GetDescription(), lines);
++
++            return lines;
++        }
++
++        private List<string> GetLinesForNormalCard()
++        {
++            string className = null;
++            if (m_readClass)
++			{
++                className = GetClassName();
++			}
++
++            var lines = new List<string>();
++
++            if (IsCoin())
++			{
++				AddCoinName(lines);
++				AddFavoriteCoinIfNeeded(lines);
++                
++				lines.AddRange(AccessibleCardUtils.GetLinesForNormalEntityDef(m_entityDef, TAG_PREMIUM.NORMAL));
++			}
++            else
++			{
++				lines.AddRange(AccessibleCardUtils.GetLinesForNormalEntityDef(m_entityDef, TAG_PREMIUM.NORMAL, className, false, GetNumCopies()));
++			}
++
++			AccessibleCardUtils.AddLineIfExists(GetCardCount(), lines);
++
++            return lines;
++        }
++
++		private bool IsCoin()
++		{
++            return false;
++		}
++
++		private void AddCoinName(List<string> lines)
++		{
++
++		}
++
++		private void AddFavoriteCoinIfNeeded(List<string> lines)
++		{
++
++		}
++
++		private string GetDescription()
++        {
++            return m_entityDef.GetCardTextInHand();
++        }
++
++        private string GetCardType()
++        {
++            return AccessibleCardUtils.GetType(m_entityDef.GetCardType());
++        }
++
++        private string GetRarity()
++        {
++            return AccessibleCardUtils.GetRarity(m_entityDef);
++        }
++
++        private string GetCost()
++        {
++            return AccessibleCardUtils.GetCardCost(m_entityDef.GetCost());
++        }
++
++        private string GetCardCount()
++        {
++            var numCopies = GetNumCopies();
++
++            if (numCopies <= 1)
++            {
++                return "";
++            }
++            return LocalizationUtils.Format(LocalizationKey.READ_CARD_N_COPIES, numCopies);
++        }
++
++        private int GetNumCopies()
++		{
++            if (m_countOverride)
++            {
++                // Used by e.g. deck builder
++                return m_count;
++            }
++            else
++            {
++                return 1;
++            }
++		}
++
++        private string GetResources()
++        {
++            return AccessibleCardUtils.GetResourcesForEntityDef(m_entityDef);
++        }
++
++        internal string GetName()
++        {
++            return AccessibleCardUtils.GetNameWithPremium(m_entityDef.GetName(), TAG_PREMIUM.NORMAL);
++        }
++    }
++}
+diff --git a/Assembly-CSharp/DraftCardVisual.cs b/Assembly-CSharp/DraftCardVisual.cs
+index d4fcf9a..4b2f58e 100644
+--- a/Assembly-CSharp/DraftCardVisual.cs
++++ b/Assembly-CSharp/DraftCardVisual.cs
+@@ -28,6 +28,7 @@ public class DraftCardVisual : CardSelectionHandler
+ 			if (m_actor.GetEntityDef().IsHeroSkin() || m_actor.GetEntityDef().IsHeroPower())
+ 			{
+ 				DraftDisplay.Get().OnHeroClicked(m_cardChoice);
++				DraftDisplay.Get().DoHeroSelectAnimation();
+ 				return;
+ 			}
+ 			m_chosen = true;
+diff --git a/Assembly-CSharp/DraftDisplay.cs b/Assembly-CSharp/DraftDisplay.cs
+index 66e60ba..025a0a9 100644
+--- a/Assembly-CSharp/DraftDisplay.cs
++++ b/Assembly-CSharp/DraftDisplay.cs
+@@ -7,7 +7,7 @@ using Hearthstone;
+ using PegasusShared;
+ using PegasusUtil;
+ using UnityEngine;
+-
++using Accessibility;
+ [CustomEditClass]
+ public class DraftDisplay : MonoBehaviour
+ {
+@@ -42,7 +42,7 @@ public class DraftDisplay : MonoBehaviour
+ 		}
+ 	}
+ 
+-	private class DraftChoice
++	internal class DraftChoice
+ 	{
+ 		public string m_cardID = string.Empty;
+ 
+@@ -236,6 +236,7 @@ public class DraftDisplay : MonoBehaviour
+ 			Options.Get().SetBool(Option.HAS_SEEN_FORGE_CARD_CHOICE2, val: false);
+ 		}
+ 		m_screenEffectsHandle = new ScreenEffectsHandle(this);
++		AccessibilityMgr.SetScreen(AccessibleArenaDisplay.Get());
+ 	}
+ 
+ 	private void OnDestroy()
+@@ -275,6 +276,7 @@ public class DraftDisplay : MonoBehaviour
+ 		{
+ 			m_draftDeckTray.gameObject.SetActive(value: true);
+ 		}
++
+ 	}
+ 
+ 	private void Update()
+@@ -648,7 +650,7 @@ public class DraftDisplay : MonoBehaviour
+ 		return m_zoomedHero != null;
+ 	}
+ 
+-	private void DoHeroSelectAnimation()
++	internal void DoHeroSelectAnimation()
+ 	{
+ 		bool flag = m_draftManager.GetSlotType() == DraftSlotType.DRAFT_SLOT_HERO_POWER;
+ 		RemoveListeners();
+@@ -841,6 +843,7 @@ public class DraftDisplay : MonoBehaviour
+ 			}
+ 			if (numTicketsOwned > 0)
+ 			{
++				AccessibilityMgr.Output(null,LocalizationUtils.Format(LocalizationKey.ARENA_TICKETS_COUNT,numTicketsOwned));
+ 				ShowOutstandingTicketScreen(numTicketsOwned);
+ 				break;
+ 			}
+@@ -1341,6 +1344,9 @@ public class DraftDisplay : MonoBehaviour
+ 		{
+ 			m_instructionText.Text = "";
+ 		}
++		#region accessibility
++		AccessibilityMgr.Output(null,m_instructionText.Text);
++		#endregion
+ 	}
+ 
+ 	private void DoFirstTimeIntro()
+@@ -1502,6 +1508,7 @@ public class DraftDisplay : MonoBehaviour
+ 			NotificationManager.Get().CreateInnkeeperQuote(UserAttentionBlocker.NONE, new Vector3(133.1f, NotificationManager.DEPTH, 54.2f), GameStrings.Get("VO_INNKEEPER_FORGE_1WIN"), "VO_INNKEEPER_ARENA_1WIN.prefab:31bb13e800c74c0439ee1a7bfc1e3499");
+ 			Options.Get().SetBool(Option.HAS_SEEN_FORGE_1WIN, val: true);
+ 		}
++		AccessibleArenaDisplay.ArenaIdleMenu();
+ 	}
+ 
+ 	private void ShowDraftRewardsScreen()
+@@ -1538,6 +1545,9 @@ public class DraftDisplay : MonoBehaviour
+ 			ArenaTrayDisplay.Get().ShowRewardsOpenAtStart();
+ 		}
+ 		LoadAndPositionHeroCard();
++		#region accessibility
++		ArenaTrayDisplay.Get().m_TheKeyMesh.GetComponent<PegUIElement>().TriggerPress();
++		#endregion
+ 	}
+ 
+ 	private IEnumerator RestartArena()
+@@ -1829,6 +1839,7 @@ public class DraftDisplay : MonoBehaviour
+ 	{
+ 		if (!CanAutoDraft())
+ 		{
++			AccessibleArenaDisplay.BuildDraftChoicesList(m_choices);
+ 			yield break;
+ 		}
+ 		int frameStart2 = Time.frameCount;
+diff --git a/Assembly-CSharp/OutstandingDraftTicketDialog.cs b/Assembly-CSharp/OutstandingDraftTicketDialog.cs
+index 71927aa..126351c 100644
+--- a/Assembly-CSharp/OutstandingDraftTicketDialog.cs
++++ b/Assembly-CSharp/OutstandingDraftTicketDialog.cs
+@@ -3,7 +3,7 @@ using System;
+ using System.Collections;
+ using UnityEngine;
+ 
+-public class OutstandingDraftTicketDialog : InaccessibleDialogBase
++public class OutstandingDraftTicketDialog : DialogBase
+ {
+ 	public class Info
+ 	{
+@@ -94,6 +94,7 @@ public class OutstandingDraftTicketDialog : InaccessibleDialogBase
+ 		Hashtable args = iTween.Hash("scale", localScale, "time", 0.3f, "easetype", iTween.EaseType.easeOutBack);
+ 		iTween.ScaleTo(base.gameObject, args);
+ 		UniversalInputManager.Get().SetSystemDialogActive(active: true);
++		ReadDialog();
+ 	}
+ 
+ 	protected void EnableFullScreenEffects(bool enable)
+@@ -137,4 +138,30 @@ public class OutstandingDraftTicketDialog : InaccessibleDialogBase
+ 			m_info?.m_callbackOnCancel?.Invoke();
+ 		}
+ 	}
++	
++	#region accessibility
++	private AccessibleMenu m_accessibleMenu;
++	private void ReadDialog()
++	{
++		AccessibilityMgr.ShowUI(this);
++		m_accessibleMenu = new AccessibleMenu(this, m_description.Text, null);
++		m_accessibleMenu.AddOption(GameStrings.Get(m_enterButton.m_ButtonText.Text), () => m_enterButton.TriggerRelease());
++		m_accessibleMenu.AddOption(GameStrings.Get(m_cancelButton.m_ButtonText.Text), () => m_cancelButton.TriggerRelease());
++		m_accessibleMenu.StartReading();
++	}
++	public override void HandleAccessibleInput()
++	{
++		m_accessibleMenu?.HandleAccessibleInput();
++	}
++
++	public void onGainedFocus() {
++
++	}
++	public override string GetAccessibleHelp()
++	{
++		return m_accessibleMenu.GetHelp();
++	}
++	#endregion
++
++
+ }

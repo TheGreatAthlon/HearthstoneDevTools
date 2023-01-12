@@ -1,0 +1,30 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleCard.cs b/Assembly-CSharp/Accessibility/AccessibleCard.cs
+index 75f5e84..be0ab65 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleCard.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleCard.cs
+@@ -94,10 +94,12 @@ namespace Accessibility
+             var entity = m_card.GetEntity();
+ 
+             if (AccessibleCardUtils.IsSilencedMinion(entity)) effects.Add(LocalizedText.GLOBAL_SILENCE);
+-
++                        if (entity.HasTag(GAME_TAG.DARKMOON_TICKET)) effects.Add(LocalizationUtils.Get(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_DARKMOON_TICKET));
+             if (entity.HasDivineShield()) effects.Add(LocalizedText.GLOBAL_DIVINE_SHIELD);
+             if (entity.IsFrozen()) effects.Add(LocalizedText.GLOBAL_FROZEN);
+             if (entity.HasLifesteal()) effects.Add(LocalizedText.GLOBAL_LIFESTEAL);
++
++
+             if (entity.HasDeathrattle()) effects.Add(LocalizedText.GLOBAL_DEATHRATTLE);
+             if (entity.IsPoisonous()) effects.Add(LocalizedText.GLOBAL_POISONOUS);
+             if (entity.IsStealthed()) effects.Add(LocalizedText.GLOBAL_STEALTH);
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index bcd4549..953495f 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -455,6 +455,7 @@ public class LocalizationKey
+                 public static LocalizationKey BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE");
+                         public static LocalizationKey BATTLEGROUNDS_PARTY_PLAYER_LEFT = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_LEFT");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_READ_CARD_COST = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_CARD_COST");
++        public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_DARKMOON_TICKET = CreateKey("ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_DARKMOON_TICKET");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_READ_CARD_PREMIUM_GOLDEN = CreateKey("GLUE_MASS_DISENCHANT_PREMIUM_TITLE");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_RECRUIT_PHASE = CreateKey("GLUE_BACON_INFO_POPUP_RECRUIT");
+     public static LocalizationKey BATTLEGROUNDS_GAMEPLAY_COMBAT_PHASE = CreateKey("GLUE_BACON_INFO_POPUP_COMBAT");

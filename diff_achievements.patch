@@ -1,0 +1,279 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleJournal.cs b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+index b3d884e..e17899a 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleJournal.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+@@ -1,9 +1,10 @@
+-﻿using Hearthstone.DataModels;
+-using Hearthstone.Progression;
+-using Hearthstone.UI;
+-using System;
++﻿using System;
+ using System.Collections.Generic;
++using System.Linq;
+ using UnityEngine;
++using Hearthstone.DataModels;
++using Hearthstone.Progression;
++using Hearthstone.UI;
+ 
+ namespace Accessibility
+ {
+@@ -18,7 +19,12 @@ namespace Accessibility
+             READING_WEEKLY_QUESTS,
+             REWARDS_TRACK_MENU,
+             CLAIMING_REWARD,
+-            CHOOSING_REWARD
++            CHOOSING_REWARD,
++            ACHIEVEMENT_CATEGORY_MENU,
++            ACHIEVEMENT_SUBCATEGORY_MENU,
++            ACHIEVEMENT_LIST,
++            VIEWING_ACHIEVEMENT,
++            CLAIMING_ACHIEVEMENT
+         };
+ 
+         private State m_curState = State.LOADING;
+@@ -34,9 +40,14 @@ namespace Accessibility
+ 
+         // Rewards Track
+         private AccessibleMenu m_rewardsTrackMenu;
+-
+         private Assets.Global.RewardTrackType m_rewardTrackType;
+ 
++        //achievement menus
++        private AccessibleMenu m_achievementTabSelectorMenu;
++        private AccessibleMenu m_achievementSubcategoryMenu;
++        private AccessibleMenu m_achievementListMenu;
++        private AccessibleMenu m_achievementViewer;
++
+         private static AccessibleJournal s_instance = new AccessibleJournal();
+ 
+         internal static AccessibleJournal Get()
+@@ -106,13 +117,15 @@ namespace Accessibility
+             var rewardButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "RewardButton/JournalButtonTab/Root");
+             var achievementButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "AchievementButton/JournalButtonTab/Root");
+             var profileButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "ProfileButton/JournalButtonTab/Root");
+ 
+             m_mainMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_JOURNAL), CloseJournal);
++                        m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_ACHIEVEMENTS_TITLE"), () => AccessibleWidgetUtils.ClickButton(achievementButton));
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_QUESTS_TITLE"), () =>  AccessibleWidgetUtils.ClickButton(questButton));
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), ReadRewardsTrack);
+             //m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), () => AccessibleWidgetUtils.ClickButton(rewardButton));
+-            /*m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_ACHIEVEMENTS_TITLE"), () => AccessibleWidgetUtils.ClickButton(achievementButton));
+-            m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_PROFILE_TITLE"), () => AccessibleWidgetUtils.ClickButton(profileButton));*/
++
++            /*m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_PROFILE_TITLE"), () => AccessibleWidgetUtils.ClickButton(profileButton));*/
+ 
+             ReadMainMenu();
+ 		}
+@@ -126,6 +139,7 @@ namespace Accessibility
+ 		internal void OnTabChanged(JournalMetaDataModel data)
+         {
+             AccessibilityUtils.LogDebug($"AccessibleJournal.OnTabChanged({data.TabIndex})");
++            if (data.TabIndex == 3) ReadAchievementCats();
+ 
+             if (data.TabIndex == 1)
+             {
+@@ -363,7 +377,23 @@ namespace Accessibility
+             {
+                 m_rewardsTrackMenu?.HandleAccessibleInput();
+             }
+-            else if (m_curState == State.CHOOSING_REWARD)
++            else if (m_curState == State.ACHIEVEMENT_CATEGORY_MENU)
++            {
++                m_achievementTabSelectorMenu?.HandleAccessibleInput();
++            }
++            else if (m_curState == State.ACHIEVEMENT_SUBCATEGORY_MENU)
++            {
++                m_achievementSubcategoryMenu?.HandleAccessibleInput();
++            }
++            else if (m_curState == State.ACHIEVEMENT_LIST)
++            {
++                m_achievementListMenu?.HandleAccessibleInput();
++            }
++                        else if (m_curState == State.VIEWING_ACHIEVEMENT)
++            {
++                m_achievementViewer?.HandleAccessibleInput();
++            }
++else if (m_curState == State.CHOOSING_REWARD)
+             {
+                 if (AccessibleKey.CONFIRM.IsPressed())
+ 				{
+@@ -399,6 +429,22 @@ namespace Accessibility
+             else if (m_curState == State.REWARDS_TRACK_MENU)
+             {
+                 return m_rewardsTrackMenu?.GetHelp();
++            }
++                        else if (m_curState == State.ACHIEVEMENT_CATEGORY_MENU)
++            {
++                return m_achievementTabSelectorMenu?.GetHelp();
++            }
++else if (m_curState == State.ACHIEVEMENT_SUBCATEGORY_MENU)
++            {
++                return m_achievementSubcategoryMenu?.GetHelp();
++            }
++                        else if (m_curState == State.VIEWING_ACHIEVEMENT)
++            {
++                return m_achievementViewer?.GetHelp();
++            }
++else if (m_curState == State.ACHIEVEMENT_LIST)
++            {
++                return m_achievementListMenu?.GetHelp();
+             }
+             else if (m_curState == State.CHOOSING_REWARD)
+             {
+@@ -658,5 +704,100 @@ namespace Accessibility
+ 		}
+ 
+ 		#endregion
++
++        #region achievements
++        private void ReadAchievementCats() {
++            m_curState=State.ACHIEVEMENT_CATEGORY_MENU;
++            if(m_achievementTabSelectorMenu==null) {
++                m_achievementTabSelectorMenu = new AccessibleMenu(this,LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_CATEGORY_TITLE),()=>ReadJournal());
++                DataModelList<AchievementCategoryDataModel> cats=AchievementManager.Get().Categories.Categories;
++                m_achievementTabSelectorMenu.AddOption(LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_CATEGORY_RECENT),ReadRecentAchievements);
++                for(int i=0; i<cats.Count; i++) {
++                    var cat=cats[i];
++                    m_achievementTabSelectorMenu.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_CATEGORY_ITEM,cats[i].Name,cats[i].Stats.Points,cats[i].Stats.AvailablePoints,cats[i].Stats.CompletionPercentage, cats[i].Stats.CompletedAchievements,cats[i].Stats.TotalAchievements), () =>ReadAchievementCategory(cat));
++                }
++                m_achievementTabSelectorMenu.StartReading();
++            } else {
++                m_achievementTabSelectorMenu.StartReading(false);
++            }
++        }
++
++    private void ReadRecentAchievements() {
++        DataModelList<AchievementDataModel> allAchs=AchievementManager.Get().GetRecentlyCompletedAchievements().GetCurrentSortedAchievements()
++            .SortByStatusThenClaimedDate()
++            .Take(25)
++            .ToDataModelList();;
++        DataModelList<AchievementDataModel> recentAchieves = new DataModelList<AchievementDataModel>();
++        m_currentCategory=null;
++        for(int x=0; x<allAchs.Count; x++) {
++            recentAchieves.Add(allAchs[x]);
++    }
++ReadAchievementList(recentAchieves, ReadAchievementCats);
++}
++        private AchievementCategoryDataModel m_currentCategory;
++
++        private void ReadAchievementCategory(AchievementCategoryDataModel data) {
++                        AchievementManager.Get().SelectCategory(data);
++                        m_currentCategory=data;
++            m_curState=State.ACHIEVEMENT_SUBCATEGORY_MENU;
++                m_achievementSubcategoryMenu = new AccessibleMenu(this,data.Name,()=>ReadAchievementCats());
++                DataModelList<AchievementSubcategoryDataModel> cats=data.Subcategories.Subcategories;
++                for(int i=0; i<cats.Count; i++) {
++                    var cat=cats[i];
++                    m_achievementSubcategoryMenu.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_CATEGORY_ITEM,cats[i].Name,cats[i].Stats.Points,cats[i].Stats.AvailablePoints,cats[i].Stats.CompletionPercentage, cats[i].Stats.CompletedAchievements,cats[i].Stats.TotalAchievements), () =>ReadAchievementSubcategory(cat));
++                }
++                m_achievementSubcategoryMenu.StartReading();
++
++        }
++
++        private void ReadAchievementSubcategory(AchievementSubcategoryDataModel data) {
++            AchievementManager.Get().SelectSubcategory(data);
++            DataModelList<AchievementSectionDataModel> sections = data.Sections.Sections;
++            DataModelList<AchievementDataModel> achieves=new DataModelList<AchievementDataModel>();
++            for(int i=0; i<sections.Count; i++) {
++                for(int j=0; j<sections[i].Achievements.Achievements.Count; j++) {
++                achieves.Add(sections[i].Achievements.Achievements[j]);
++                }
++            }
++            ReadAchievementList(achieves,() => ReadAchievementCategory(m_currentCategory));
++        }
++
++        private void ReadAchievementList(DataModelList<AchievementDataModel> achievements, Action goBackAction) {
++            m_curState=State.ACHIEVEMENT_LIST;
++            m_achievementListMenu = new AccessibleMenu(this,"",goBackAction);
++            for(int i=0; i<achievements.Count; i++) {
++                AchievementDataModel dataModel=achievements[i];
++    string nameStr=dataModel.Name;
++        if(!ProgressUtils.IsAchievementClaimed(dataModel.Status)&&dataModel.CompletionDate!="") nameStr=LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_CLAIMABLE)+" "+nameStr;;
++    m_achievementListMenu.AddOption(nameStr+": "+dataModel.Description, () => ViewAchievement(dataModel));
++            }
++            m_achievementListMenu.StartReading();
++        }
++
++        private void ViewAchievement(AchievementDataModel ach) {
++            m_curState=State.VIEWING_ACHIEVEMENT;
++                m_achievementViewer = new AccessibleMenu(this,"", GoBackToAchievementList);
++                if(!ProgressUtils.IsAchievementClaimed(ach.Status)&&ach.CompletionDate!="") m_achievementViewer.AddOption(LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_VIEW_CLAIM),()=>ClaimAchievement(ach.ID));
++                m_achievementViewer.AddOption(ach.Name,GoBackToAchievementList);
++                if(ach.MaxTier>1)                 m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_TIER,ach.Tier,ach.MaxTier),GoBackToAchievementList);
++                m_achievementViewer.AddOption(ach.Description,GoBackToAchievementList);
++                                if(ach.Quota>1) m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_PROGRESS,ach.Progress,ach.Quota),GoBackToAchievementList);
++                                m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_EARN,ach.Points),GoBackToAchievementList);
++                                                                if(ach.CompletionDate!="") m_achievementViewer.AddOption(ach.CompletionDate,GoBackToAchievementList);
++                                                                m_achievementViewer.StartReading();
++        }
++
++    private void ClaimAchievement(int id) {
++        if(AchievementManager.Get().ClaimAchievementReward(id)) {
++if(m_currentCategory==null) ReadRecentAchievements();
++else ReadAchievementCategory(m_currentCategory);
++        } else AccessibilityMgr.Output(this,LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_COULD_NOT_CLAIM));
++}
++        private void GoBackToAchievementList() {
++            m_curState=State.ACHIEVEMENT_LIST;
++            m_achievementViewer=null;
++            m_achievementListMenu.StartReading(false);
++        }
++        #endregion
+ 	}
+ }
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 4d2d1e6..a221588 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -995,7 +995,17 @@ public class LocalizationKey
+                 public static LocalizationKey ARENA_WINS_LOSSES = CreateKey("ACCESSIBILITY_ARENA_WINS_LOSSES");
+                 public static LocalizationKey ARENA_TICKETS_COUNT = CreateKey("ACCESSIBILITY_ARENA_TICKETS_COUNT");
+ 
+-
++//journal
++                public static LocalizationKey ACHIEVEMENT_CATEGORY_TITLE = CreateKey("ACCESSIBILITY_ACHIEVEMENT_CATEGORY_TITLE");
++                                public static LocalizationKey ACHIEVEMENT_CATEGORY_RECENT = CreateKey("ACCESSIBILITY_ACHIEVEMENT_CATEGORY_RECENT");
++                public static LocalizationKey ACHIEVEMENT_CATEGORY_ITEM = CreateKey("ACCESSIBILITY_ACHIEVEMENT_CATEGORY_ITEM");
++                                public static LocalizationKey ACHIEVEMENT_VIEW_TIER = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_TIER");
++                                public static LocalizationKey ACHIEVEMENT_VIEW_PROGRESS = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_PROGRESS");
++                                public static LocalizationKey ACHIEVEMENT_VIEW_COMPLETED = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_COMPLETED");
++                                                                                                public static LocalizationKey ACHIEVEMENT_VIEW_CLAIM = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_CLAIM");
++                                                                                                public static LocalizationKey ACHIEVEMENT_CLAIMABLE = CreateKey("ACCESSIBILITY_ACHIEVEMENT_CLAIMABLE");
++                                                                                                public static LocalizationKey ACHIEVEMENT_VIEW_EARN = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_EARN");
++                                                                public static LocalizationKey ACHIEVEMENT_COULD_NOT_CLAIM = CreateKey("ACCESSIBILITY_ACHIEVEMENT_COULD_NOT_CLAIM");
+     public string Key { get; private set; }
+ 
+     private LocalizationKey(string key)
+diff --git a/Assembly-CSharp/Hearthstone/Progression/AchievementToast.cs b/Assembly-CSharp/Hearthstone/Progression/AchievementToast.cs
+index 08f499f..9bb0ee6 100644
+--- a/Assembly-CSharp/Hearthstone/Progression/AchievementToast.cs
++++ b/Assembly-CSharp/Hearthstone/Progression/AchievementToast.cs
+@@ -1,6 +1,7 @@
+ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
++using Accessibility;
+ 
+ namespace Hearthstone.Progression
+ {
+@@ -75,6 +76,7 @@ namespace Hearthstone.Progression
+ 				}
+ 				m_toast.Show();
+ 			}
++			ReadToast();
+ 		}
+ 
+ 		public void Hide()
+@@ -101,5 +103,10 @@ namespace Hearthstone.Progression
+ 				componentInChildren.Show();
+ 			});
+ 		}
++	#region accessibility
++		private void ReadToast() {
++			AccessibilityMgr.Output(null, m_text.Text);
++		}
++	#endregion
+ 	}
+-}
++}
+\ No newline at end of file

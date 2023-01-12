@@ -1,0 +1,13 @@
+diff --git a/Assembly-CSharp/Player.cs b/Assembly-CSharp/Player.cs
+index 2035f90..cc070a2 100644
+--- a/Assembly-CSharp/Player.cs
++++ b/Assembly-CSharp/Player.cs
+@@ -301,7 +301,7 @@ public class Player : Entity
+ 			break;
+ 		}
+ 		int num3 = GetTag(GAME_TAG.CURRENT_TEMP_SPELLPOWER) * num;
+-		int tag = ent.GetTag(GAME_TAG.CURRENT_SPELLPOWER);
++		int tag = ent == this ? 0 : ent.GetTag(GAME_TAG.CURRENT_SPELLPOWER);
+ 		return GetTag(GAME_TAG.CURRENT_SPELLPOWER) - GetTag(GAME_TAG.CURRENT_NEGATIVE_SPELLPOWER) + num2 + num3 + tag;
+ 	}
+ 

@@ -1,0 +1,15 @@
+diff --git a/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs b/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
+index deec3ca..f474686 100644
+--- a/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
++++ b/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
+@@ -98,7 +98,9 @@ namespace Hearthstone.Progression
+ 			{
+ 				if (m_journalMetaDatamodel.EventIsNew)
+ 				{
+-					s_activeTabIndexByType[m_rewardTrackType] = 0;
++					// The event tab is not accessible and spawns a popup that breaks the mod.
++					//TODO: Implement accessibility for the event tab and reinstate this.
++					s_activeTabIndexByType[m_rewardTrackType] = m_initialTabIndexPerSession; // was 0
+ 				}
+ 				else
+ 				{

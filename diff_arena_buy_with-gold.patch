@@ -1,0 +1,201 @@
+diff --git a/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs
+index 5b857fd..ff26271 100644
+--- a/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs
++++ b/Assembly-CSharp/Accessibility/arena/AccessibleArenaDisplay.cs
+@@ -70,17 +70,17 @@ private static bool m_isDrafting=false;
+             List<DraftCardVisual> visuals=DraftDisplay.Get().GetCardVisuals();
+             for(int i=0; i<cards.Count; i++) {
+                 DraftCardVisual v=visuals[i];
+-                bool badTry=true;
+                 var c=cards[i].m_actor;
+                 if(c==null) c=cards[i].m_subActor;
+                                                 AccessibleArenaDraftCard newCard=new AccessibleArenaDraftCard(null, c.GetEntityDef());
+                                 m_accessibleDraftChoices.AddOption(newCard,() => v.ChooseThisCard());
+             }
+-
++AccessibilityMgr.SetScreen(AccessibleArenaDisplay.Get());
+             m_accessibleDraftChoices.StartReading();
+         }
+ 
+         public void OnGainedFocus() {
++            /*
+             if(m_curState==State.DRAFT_CHOICE) {
+                 m_accessibleDraftChoices.StartReading();
+             }
+@@ -90,7 +90,7 @@ private static bool m_isDrafting=false;
+             if(m_curState==State.IDLE_SCREEN) {
+                 m_idleMenu.StartReading();
+             }
+-
++*/
+         }
+ 
+         public void HandleInput() {
+diff --git a/Assembly-CSharp/ArenaStore.cs b/Assembly-CSharp/ArenaStore.cs
+index 6ab0836..947fd16 100644
+--- a/Assembly-CSharp/ArenaStore.cs
++++ b/Assembly-CSharp/ArenaStore.cs
+@@ -2,6 +2,7 @@ using System.Collections.Generic;
+ using Hearthstone.Commerce;
+ using PegasusUtil;
+ using UnityEngine;
++using Accessibility;
+ 
+ public class ArenaStore : Store
+ {
+diff --git a/Assembly-CSharp/ArenaTrayDisplay.cs b/Assembly-CSharp/ArenaTrayDisplay.cs
+index f630b6c..34c0e65 100644
+--- a/Assembly-CSharp/ArenaTrayDisplay.cs
++++ b/Assembly-CSharp/ArenaTrayDisplay.cs
+@@ -332,6 +332,9 @@ public class ArenaTrayDisplay : MonoBehaviour
+ 		{
+ 			Debug.LogWarning("ArenaTrayDisplay: PegUIElement missing on the Key!");
+ 		}
++		else {
++			m_TheKeyMesh.GetComponent<PegUIElement>().TriggerPress();
++		}
+ 	}
+ 
+ 	public void AnimateRewards()
+diff --git a/Assembly-CSharp/DraftDisplay.cs b/Assembly-CSharp/DraftDisplay.cs
+index 025a0a9..77c2fb2 100644
+--- a/Assembly-CSharp/DraftDisplay.cs
++++ b/Assembly-CSharp/DraftDisplay.cs
+@@ -861,6 +861,7 @@ public class DraftDisplay : MonoBehaviour
+ 				ShowPurchaseScreen();
+ 			}
+ 			PresenceMgr.Get().SetStatus(Global.PresenceStatus.ARENA_FORGE);
++			AccessibilityMgr.HideUI(ArenaStore.Get());
+ 			if (m_draftManager.ShouldShowFreeArenaWinScreen())
+ 			{
+ 				ShowFreeArenaWinScreen();
+@@ -1543,6 +1544,7 @@ public class DraftDisplay : MonoBehaviour
+ 		else
+ 		{
+ 			ArenaTrayDisplay.Get().ShowRewardsOpenAtStart();
++
+ 		}
+ 		LoadAndPositionHeroCard();
+ 		#region accessibility
+diff --git a/Assembly-CSharp/Store.cs b/Assembly-CSharp/Store.cs
+index e9da374..5b7d5a7 100644
+--- a/Assembly-CSharp/Store.cs
++++ b/Assembly-CSharp/Store.cs
+@@ -8,9 +8,10 @@ using Hearthstone.Commerce;
+ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
++using Accessibility;
+ 
+ [CustomEditClass]
+-public abstract class Store : UIBPopup, IStore
++public abstract class Store : UIBPopup, IStore, AccessibleUI
+ {
+ 	protected enum BuyButtonState
+ 	{
+@@ -60,7 +61,7 @@ public abstract class Store : UIBPopup, IStore
+ 			{
+ 				m_state = value;
+ 				Refresh();
+-			}
++		}
+ 		}
+ 
+ 		public bool ForceDisabled
+@@ -146,7 +147,7 @@ public abstract class Store : UIBPopup, IStore
+ 			m_tooltipZone.HideTooltip();
+ 		}
+ 
+-		private string GetBuyButtonTooltipMessage(BuyButtonState state)
++		internal string GetBuyButtonTooltipMessage(BuyButtonState state)
+ 		{
+ 			switch (state)
+ 			{
+@@ -430,12 +431,12 @@ public abstract class Store : UIBPopup, IStore
+ 			}
+ 		}
+ 		m_useOverlayUI = useOverlayUI;
+-		StartCoroutine(ShowWhenReady(isTotallyFake));
++		StartCoroutine(ShowWhenReady(isTotallyFake,(ProductDataModel)dataModel));
+ 	}
+ 
+ 	public void Open()
+ 	{
+-		StartCoroutine(ShowWhenReady(isTotallyFake: false));
++		StartCoroutine(ShowWhenReady(isTotallyFake:false, new ProductDataModel()));
+ 	}
+ 
+ 	public bool IsOpen()
+@@ -638,7 +639,7 @@ public abstract class Store : UIBPopup, IStore
+ 		return m_vcButtonInternal.State;
+ 	}
+ 
+-	private IEnumerator ShowWhenReady(bool isTotallyFake)
++	private IEnumerator ShowWhenReady(bool isTotallyFake, ProductDataModel dataModel)
+ 	{
+ 		VisualController visualController = GetComponent<VisualController>();
+ 		while (visualController != null && visualController.IsChangingStates)
+@@ -646,6 +647,8 @@ public abstract class Store : UIBPopup, IStore
+ 			yield return null;
+ 		}
+ 		ShowImpl(isTotallyFake);
++		ReadStore(dataModel);
++
+ 	}
+ 
+ 	private void ForceDisableBuyButtons(bool forceDisable)
+@@ -790,7 +793,7 @@ public abstract class Store : UIBPopup, IStore
+ 		else if (!flag && m_restoreWhenShopHides)
+ 		{
+ 			m_restoreWhenShopHides = false;
+-			StartCoroutine(ShowWhenReady(isTotallyFake: false));
++			StartCoroutine(ShowWhenReady(isTotallyFake: false, new ProductDataModel()));
+ 		}
+ 	}
+ 
+@@ -803,4 +806,45 @@ public abstract class Store : UIBPopup, IStore
+ 		}
+ 		return hashSet;
+ 	}
++
++	#region accessibility
++	private AccessibleMenu m_accessibleMenu;
++	public void ReadStore(ProductDataModel dataMode) {
++		AccessibilityMgr.ShowUI(this);
++		WidgetTemplate componentOnSelfOrParent = GameObjectUtils.GetComponentOnSelfOrParent<WidgetTemplate>(base.transform);
++		ProductDataModel dataModel=componentOnSelfOrParent.GetDataModel<ProductDataModel>();
++		if(dataModel!=null) {
++			AccessibilityMgr.Output(null,dataModel.DescriptionHeader);
++		AccessibilityMgr.Output(null,dataModel.FlavorText);
++	}
++		m_accessibleMenu=new AccessibleMenu(null,"", () => Navigation.GoBack());
++		foreach (BuyButtonInternal buyButton in m_buyButtons) {
++			if(buyButton.State!=BuyButtonState.ENABLED) {
++continue;
++			}
++			 m_accessibleMenu.AddOption(GameStrings.Get(buyButton.m_toolTipHeadlineStringId)+" "+buyButton.m_button.m_ButtonText.Text,() => ClickBuyButton(buyButton));
++		}
++		m_accessibleMenu.StartReading();
++	}
++
++	private void ClickBuyButton(BuyButtonInternal btn) {
++			if(btn.State!=BuyButtonState.ENABLED) {
++				AccessibilityMgr.Output(this,btn.GetBuyButtonTooltipMessage(btn.State));
++				return;
++			}
++			btn.m_button.TriggerRelease();
++	}
++	public void HandleAccessibleInput() {
++		m_accessibleMenu?.HandleAccessibleInput();
++	}
++
++	public string GetAccessibleHelp() {
++		return m_accessibleMenu.GetHelp();
++
++	}
++
++	public void OnGainedFocus() {
++
++	}
++	#endregion
+ }

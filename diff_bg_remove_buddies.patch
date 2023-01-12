@@ -1,0 +1,117 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleKey.cs b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+index c52fa35..35d9e41 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleKey.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleKey.cs
+@@ -123,7 +123,9 @@ namespace Accessibility
+         public static AccessibleKey BATTLEGROUNDS_READ_MY_STATS_TO_END = CreateKey(KeyCode.M, true);
+         public static AccessibleKey BATTLEGROUNDS_READ_LEADERBOARD = CreateKey(KeyCode.L);
+         public static AccessibleKey BATTLEGROUNDS_READ_RACES_IN_GAME = CreateKey(KeyCode.O);
++        /* Commenting out as buddies have been removed from Battlegrounds for now.
+         public static AccessibleKey BATTLEGROUNDS_READ_HERO_BUDDY = CreateKey(KeyCode.D);
++        */
+         #endregion
+ 
+         #region Dev Utils
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
+index a601559..deed169 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
+@@ -50,6 +50,7 @@ namespace Accessibility
+             }
+ 		}
+ 
++        /* Commenting out as buddies have been removed from Battlegrounds for now.
+ 		private List<string> GetLinesForBuddyMeter()
+ 		{
+             var ret = new List<string>();
+@@ -63,6 +64,7 @@ namespace Accessibility
+ 
+             return ret;
+ 		}
++        */
+ 
+ 		private List<string> GetLinesForSpell()
+ 		{
+@@ -154,7 +156,9 @@ namespace Accessibility
+ 			{
+                 var cardId = entity.GetCardId();
+                 lines.AddRange(AccessibleCardUtils.GetHeroPowerCardLinesForHeroCard(cardId));
++                /* Commenting out as buddies have been removed from Battlegrounds for now.
+                 lines.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(cardId));
++                */
+ 			}
+             catch (Exception e)
+ 			{
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
+index 5b00128..2842436 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
+@@ -30,7 +30,9 @@ namespace Accessibility
+ 			{
+                 var cardId = entity.GetCardId();
+                 ret.AddRange(AccessibleCardUtils.GetHeroPowerCardLinesForHeroCard(cardId));
++                /* Commenting out as buddies have been removed from Battlegrounds for now.
+                 ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(cardId));
++                */
+ 			}
+             catch (Exception e)
+ 			{
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
+index a0b3bb7..6565e3d 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
+@@ -469,10 +469,12 @@ namespace Accessibility
+ 			{
+                 ReadRacesInGame();
+ 			}
++            /* Commenting out as buddies have been removed from Battlegrounds for now.
+             else if (AccessibleKey.BATTLEGROUNDS_READ_HERO_BUDDY.IsPressed())
+ 			{
+                 ReadHeroBuddy();
+ 			}
++            */
+         }
+ 
+ 		internal AccessibleInGameState GetStateAtStartOfCombat()
+@@ -480,6 +482,7 @@ namespace Accessibility
+             return m_lastDescribedState;
+ 		}
+ 
++        /* Commenting out as buddies have been removed from Battlegrounds for now.
+ 		private void ReadHeroBuddy()
+ 		{
+             var heroBuddyCard = TB_BaconShop.GetHeroBuddyCard(Player.Side.FRIENDLY);
+@@ -493,6 +496,7 @@ namespace Accessibility
+             m_curZone = heroBuddyCard.GetZone();
+             m_cardBeingRead.ReadLine();
+ 		}
++        */
+ 
+ 		private void ReadRacesInGame()
+ 		{
+@@ -1500,7 +1504,9 @@ namespace Accessibility
+ 
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_PLAYER_GOLD_HELP, AccessibleKey.SEE_PLAYER_MANA));
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_TAVERN_INFORMATION_HELP, AccessibleKey.SEE_TAVERN));
++            /* Commenting out as buddies have been removed from Battlegrounds for now.
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_HERO_BUDDY_HELP, AccessibleKey.BATTLEGROUNDS_READ_HERO_BUDDY));
++            */
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_NEXT_OPPONENT_STATS_HELP, AccessibleKey.BATTLEGROUNDS_READ_NEXT_OPPONENT_STATS));
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_MY_STATS_HELP, AccessibleKey.BATTLEGROUNDS_READ_MY_STATS));
+             lines.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_LEADERBOARD_HELP, AccessibleKey.BATTLEGROUNDS_READ_LEADERBOARD));
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+index 9595e1e..713ae0c 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+@@ -1,4 +1,5 @@
+-﻿using System;
++﻿/* Commenting out as buddies have been removed from Battlegrounds for now.
++using System;
+ using System.Collections.Generic;
+ using System.Text;
+ using UnityEngine;
+@@ -26,3 +27,4 @@ namespace Accessibility
+ 		}
+ 	}
+ }
++*/
