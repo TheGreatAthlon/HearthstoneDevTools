@@ -1,0 +1,181 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleJournal.cs b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+index 4521a5e..9222731 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleJournal.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+@@ -120,9 +120,10 @@ namespace Accessibility
+                         //var eventButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "EventButton/JournalButtonTab/Root");
+ 
+             m_mainMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_JOURNAL), CloseJournal);
+-                        m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_ACHIEVEMENTS_TITLE"), () => AccessibleWidgetUtils.ClickButton(achievementButton));
++
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_QUESTS_TITLE"), () =>  AccessibleWidgetUtils.ClickButton(questButton));
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), ReadRewardsTrack);
++                                    m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_ACHIEVEMENTS_TITLE"), () => AccessibleWidgetUtils.ClickButton(achievementButton));
+             //m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), () => AccessibleWidgetUtils.ClickButton(rewardButton));
+ 
+             /*m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_PROFILE_TITLE"), () => AccessibleWidgetUtils.ClickButton(profileButton));*/
+@@ -380,10 +381,12 @@ namespace Accessibility
+             else if (m_curState == State.ACHIEVEMENT_CATEGORY_MENU)
+             {
+                 m_achievementTabSelectorMenu?.HandleAccessibleInput();
++                return;
+             }
+             else if (m_curState == State.ACHIEVEMENT_SUBCATEGORY_MENU)
+             {
+                 m_achievementSubcategoryMenu?.HandleAccessibleInput();
++                return;
+             }
+             else if (m_curState == State.ACHIEVEMENT_LIST)
+             {
+@@ -398,19 +401,18 @@ namespace Accessibility
+             } else if(AccessibleKey.CONFIRM.IsPressed()&&m_achievementListMenu.GetItemBeingReadIndex()>=0&&m_achievementListMenu.GetItemBeingReadIndex()<m_achievementListMenu.Count) {
+                 ClaimAchievement(m_currentAchievementList[m_achievementListMenu.GetItemBeingReadIndex()].ID);
+             }
+-            }
+-                        else if (m_curState == State.VIEWING_ACHIEVEMENT)
+-            {
+-                m_achievementViewer?.HandleAccessibleInput();
++            return;
+             }
+ else if (m_curState == State.CHOOSING_REWARD)
+             {
+                 if (AccessibleKey.CONFIRM.IsPressed())
+ 				{
+-                    ClaimChooseOneReward(m_chooseOneRewards.GetItemBeingRead());
++                    if(m_achievementChooseOne) ClaimAchievementChooseOneReward(m_currentAchievement, m_chooseOneRewards.GetItemBeingRead());
++                    else ClaimChooseOneReward(m_chooseOneRewards.GetItemBeingRead());
+                     return;
+ 				}
+                 m_chooseOneRewards?.HandleAccessibleInput();
++                return;
+             }
+         }
+ 
+@@ -580,7 +582,7 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+ 		private void ReadChooseOneRewards(RewardTrackLevelDbfRecord record, bool forPaidTrack)
+ 		{
+             var dbfRecord = (forPaidTrack ? record.PaidRewardListRecord : record.FreeRewardListRecord);
+-
++m_achievementChooseOne=false;
+             if (dbfRecord == null)
+ 			{
+                 AccessibilityUtils.LogFatalError($"ReadChooseOneRewards() reached null dbfRecord: record.RewardTrackId={record.RewardTrackId} record.ID={record.ID} forPaidTrack={forPaidTrack}");
+@@ -592,8 +594,18 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+                 AccessibilityUtils.LogFatalError($"ReadChooseOneRewards() reached a non-choose one dbfRecord: record.RewardTrackId={record.RewardTrackId} record.ID={record.ID} forPaidTrack={forPaidTrack}");
+                 return;
+ 			}
++            ReadChooseOneRewards(dbfRecord);
++		}
++
++		private void ReadChooseOneRewards(RewardListDbfRecord record)
++		{
+ 
+-            var choices = dbfRecord.RewardItems;
++            if (!record.ChooseOne)
++			{
++                return;
++			}
++
++            var choices = record.RewardItems;
+             var isHeroSkinChoice = true;
+             foreach (var choice in choices)
+ 			{
+@@ -735,7 +747,7 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+     private void ReadRecentAchievements() {
+         DataModelList<AchievementDataModel> allAchs=AchievementManager.Get().GetRecentlyCompletedAchievements().GetCurrentSortedAchievements()
+             .SortByStatusThenClaimedDate()
+-            .Take(25)
++            .Take(5)
+             .ToDataModelList();;
+         DataModelList<AchievementDataModel> recentAchieves = new DataModelList<AchievementDataModel>();
+         m_currentCategory=null;
+@@ -796,7 +808,7 @@ DataModelList<AchievementDataModel> m_currentAchievementList=null;
+                 if(ach.MaxTier>1) lines.Add(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_TIER,ach.Tier,ach.MaxTier));
+                 lines.Add(ach.Description);
+                                 if(ach.Quota>1) lines.Add(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_PROGRESS,ach.Progress,ach.Quota));
+-                                lines.Add(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_EARN,ach.Points));
++                                                                                                if(ach.RewardSummary!="") lines.Add(ach.RewardSummary);
+                                                                 if(ach.CompletionDate!="") lines.Add(ach.CompletionDate);
+             items.Add(new AccessibleMultilineText(this, lines));            
+ }       
+@@ -807,27 +819,28 @@ DataModelList<AchievementDataModel> m_currentAchievementList=null;
+         }
+ 
+         private void ViewAchievement(AchievementDataModel ach) {
+-            m_curState=State.VIEWING_ACHIEVEMENT;
+-                m_achievementViewer = new AccessibleMenu(this,"", GoBackToAchievementList);
+-                if(!ProgressUtils.IsAchievementClaimed(ach.Status)&&ach.CompletionDate!="") m_achievementViewer.AddOption(LocalizationUtils.Get(LocalizationKey.ACHIEVEMENT_VIEW_CLAIM),()=>ClaimAchievement(ach.ID));
+-                m_achievementViewer.AddOption(ach.Name,GoBackToAchievementList);
+-                if(ach.MaxTier>1)                 m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_TIER,ach.Tier,ach.MaxTier),GoBackToAchievementList);
+-                m_achievementViewer.AddOption(ach.Description,GoBackToAchievementList);
+-                                if(ach.Quota>1) m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_PROGRESS,ach.Progress,ach.Quota),GoBackToAchievementList);
+-                                m_achievementViewer.AddOption(LocalizationUtils.Format(LocalizationKey.ACHIEVEMENT_VIEW_EARN,ach.Points),GoBackToAchievementList);
+-                                                                if(ach.CompletionDate!="") m_achievementViewer.AddOption(ach.CompletionDate,GoBackToAchievementList);
+-                                                                m_achievementViewer.StartReading();
+         }
+-
++    private bool m_achievementChooseOne=false;
++    private int m_currentAchievement=0;
+     private void ClaimAchievement(int id) {
+-        if(AchievementManager.Get().ClaimAchievementReward(id)) {
+-            AchievementManager.Get().ShowNextReward(OnAchievementClaimed);
++        m_currentAchievement=id;
++        RewardListDbfRecord rewardList = GameDbf.Achievement.GetRecord(id).RewardListRecord;
++        if(AchievementManager.Get().ClaimAchievementReward(id, 0)) {
++            if(rewardList!=null&&rewardList.ChooseOne) {
++                m_achievementChooseOne=true;
++                ReadChooseOneRewards(rewardList);
++            }
++            else             AchievementManager.Get().ShowNextReward(OnAchievementClaimed);
+         }
+     }
++private void ClaimAchievementChooseOneReward(int achievementId, AccessibleRewardItemDataModel data) {
++                        Network.Get().ClaimAchievementReward(achievementId,data.GetDataModel().AssetId);
++                        OnAchievementClaimed();
++}
+ 
+-    private void OnAchievementClaimed() {
++    internal void OnAchievementClaimed() {
+         if(m_currentSubcategory==null) ReadRecentAchievements();
+-else ReadAchievementSubcategory(m_currentSubcategory);
++//else ReadAchievementSubcategory(m_currentSubcategory);
+ 
+     }
+         private void GoBackToAchievementList() {
+diff --git a/Assembly-CSharp/Hearthstone/Progression/AchievementCell.cs b/Assembly-CSharp/Hearthstone/Progression/AchievementCell.cs
+index 37a9c5f..df43761 100644
+--- a/Assembly-CSharp/Hearthstone/Progression/AchievementCell.cs
++++ b/Assembly-CSharp/Hearthstone/Progression/AchievementCell.cs
+@@ -2,6 +2,7 @@ using System.Collections;
+ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
++using Accessibility;
+ 
+ namespace Hearthstone.Progression
+ {
+@@ -97,6 +98,7 @@ namespace Hearthstone.Progression
+			else
+ 			{
+ 				StartClaimSequence(dataModel.ID);
++																		AccessibleJournal.Get().OnAchievementClaimed();
+ 			}
+ 		}
+ 
+ diff --git a/Assembly-CSharp/RewardPopups.cs b/Assembly-CSharp/RewardPopups.cs
+ index d24e114..01aac1c 100644
+--- a/Assembly-CSharp/RewardPopups.cs
++++ b/Assembly-CSharp/RewardPopups.cs
+@@ -653,12 +653,6 @@ public class RewardPopups : IDisposable
+ 
+ 	private bool ShowNextProgressionAchievementReward()
+ 	{
+-    if (AccessibilityMgr.IsAccessibilityEnabled())
+-    {
+-      // Not implemented yet
+-      return false;
+-    }
+-
+ 		AchievementManager achievementManager = AchievementManager.Get();
+ 		if (achievementManager == null || !achievementManager.HasReward() || !achievementManager.ShowNextReward(OnPopupClosed))
+ 		{
