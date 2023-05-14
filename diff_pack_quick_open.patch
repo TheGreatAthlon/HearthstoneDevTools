@@ -1,0 +1,24 @@
+diff --git a/Assembly-CSharp/PackOpeningDirector.cs b/Assembly-CSharp/PackOpeningDirector.cs
+index 6fa7e55..b169008 100644
+--- a/Assembly-CSharp/PackOpeningDirector.cs
++++ b/Assembly-CSharp/PackOpeningDirector.cs
+@@ -461,7 +461,7 @@ public class PackOpeningDirector : MonoBehaviour, AccessibleUI
+ 
+     public void HandleAccessibleInput()
+     {
+-		if (AccessibleKey.CONFIRM.IsPressed() || AccessibleKey.SPACE.IsPressed())
++		if (AccessibleKey.CONFIRM.IsPressed())
+         {
+ 			if (m_doneButtonShown)
+             {
+@@ -472,6 +472,10 @@ public class PackOpeningDirector : MonoBehaviour, AccessibleUI
+                 TryRevealCard();
+             }
+         }
++		else if (AccessibleKey.SPACE.IsPressed())
++		{
++			ForceRevealRandomCard();
++		}
+ 		else if (AccessibleKey.READ_TOOLTIP.IsPressed())
+         {
+             AccessibilityUtils.ReadTooltip(this);

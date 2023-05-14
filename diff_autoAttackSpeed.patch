@@ -1,0 +1,191 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index 35f1929..04087d9 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -598,8 +598,10 @@ namespace Accessibility
+             }
+         }
+ 
+-        private void SetNextAction(float delay = 1f)
++        private void SetNextAction(float delay = 0f)
+         {
++            if(delay==0f) delay=Options.Get().GetFloat(Option.ACCESSIBILITY_AUTO_ATTACK_SPEED);
++            if(delay==0f) delay=1.0f;
+             m_nextAction = Time.time + delay;
+         }
+ 
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index e7d196c..5947dcf 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -46,6 +46,10 @@ public class LocalizationKey
+     public static LocalizationKey OPTIONS_MENU_CHECKBOX_LABEL = CreateKey("ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_LABEL");
+     public static LocalizationKey OPTIONS_MENU_CHECKBOX_CHECKED = CreateKey("ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_CHECKED");
+     public static LocalizationKey OPTIONS_MENU_CHECKBOX_NOT_CHECKED = CreateKey("ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_NOT_CHECKED");
++public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED = CreateKey("ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED");
++public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_SLOW = CreateKey("ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_SLOW");
++public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_MEDIUM = CreateKey("ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_MEDIUM");
++public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST = CreateKey("ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST");
+ 
+     // Hub
+     public static LocalizationKey HUB_MAIN_MENU_TITLE = CreateKey("ACCESSIBILITY_HUB_MAIN_MENU_TITLE");
+diff --git a/Assembly-CSharp/ClientOption.cs b/Assembly-CSharp/ClientOption.cs
+index 04f7b1e..01a7b16 100644
+--- a/Assembly-CSharp/ClientOption.cs
++++ b/Assembly-CSharp/ClientOption.cs
+@@ -133,6 +133,7 @@ public enum ClientOption
+ 	#region Accessibility
+ 	ACCESSIBILITY_GAME_SPEED,
+ 	ACCESSIBILITY_BACKGROUND_SPEECH,
++	ACCESSIBILITY_AUTO_ATTACK_SPEED,
+ 	ACCESSIBILITY_BATTLEGROUNDS_NARRATE_ATTACKS,
+ 	#endregion
+ 	DEBUG_SHOW_BATTLEGROUND_SKIN_IDS,
+diff --git a/Assembly-CSharp/Option.cs b/Assembly-CSharp/Option.cs
+index 037e949..1c947ab 100644
+--- a/Assembly-CSharp/Option.cs
++++ b/Assembly-CSharp/Option.cs
+@@ -648,6 +648,8 @@ public enum Option
+ 	ACCESSIBILITY_GAME_SPEED,
+ 	[Description("accessibilityBackgroundSpeech")]
+ 	ACCESSIBILITY_BACKGROUND_SPEECH,
++	[Description("accessibilityAutoAttackSpeed")]
++	ACCESSIBILITY_AUTO_ATTACK_SPEED,
+ 	[Description("accessibilityBattlegroundsNarrateAttacks")]
+ 	ACCESSIBILITY_BATTLEGROUNDS_NARRATE_ATTACKS
+ 	#endregion
+diff --git a/Assembly-CSharp/OptionDataTables.cs b/Assembly-CSharp/OptionDataTables.cs
+index 5596bf7..b9678d2 100644
+--- a/Assembly-CSharp/OptionDataTables.cs
++++ b/Assembly-CSharp/OptionDataTables.cs
+@@ -765,6 +765,10 @@ public class OptionDataTables
+ 		{
+       Option.ACCESSIBILITY_BACKGROUND_SPEECH,
+ 			typeof(bool)
++    },
++		{
++      Option.ACCESSIBILITY_AUTO_ATTACK_SPEED,
++			typeof(float)
+     },
+ 		{
+       Option.ACCESSIBILITY_BATTLEGROUNDS_NARRATE_ATTACKS,
+@@ -1304,6 +1308,10 @@ public class OptionDataTables
+ 			Option.ACCESSIBILITY_BACKGROUND_SPEECH,
+ 			true
+ 	},
++    {
++			Option.ACCESSIBILITY_AUTO_ATTACK_SPEED,
++			1.0f
++	},
+     {
+ 			Option.ACCESSIBILITY_BATTLEGROUNDS_NARRATE_ATTACKS,
+ 			true
+diff --git a/Assembly-CSharp/OptionsMenu.cs b/Assembly-CSharp/OptionsMenu.cs
+index 3546678..6d054b7 100644
+--- a/Assembly-CSharp/OptionsMenu.cs
++++ b/Assembly-CSharp/OptionsMenu.cs
+@@ -7,6 +7,7 @@ using Hearthstone;
+ using Hearthstone.Streaming;
+ using UnityEngine;
+ using Accessibility;
++using Blizzard.T5.Core;
+ 
+ [CustomEditClass]
+ public class OptionsMenu : MonoBehaviour, AccessibleUI
+@@ -236,6 +237,12 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 		UpdateUI();
+ 		m_graphicsGroup.GetComponent<MultiSliceElement>().UpdateSlices();
+ 		m_graphicsManager.OnResolutionChangedEvent += UpdateMenuItemValues;
++		#region accessibility
++		m_autoAttackSpeeds.Clear();
++		m_autoAttackSpeeds.Add(1.0f,LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_AUTO_ATTACK_SPEED_SLOW));
++		m_autoAttackSpeeds.Add(0.8f,LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_AUTO_ATTACK_SPEED_MEDIUM));
++		m_autoAttackSpeeds.Add(0.5f,LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST));
++		#endregion
+ 	}
+ 
+ 	public void OnDestroy()
+@@ -705,7 +712,7 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 	}
+ 
+ 	#region Accessibility
+-
++private Map<float, string> m_autoAttackSpeeds = new Map<float,string>();
+ 	private AccessibleMenu m_accessibleMenu;
+ 
+ 	private AccessibleDropdownControl m_curAccessibleDropdown;
+@@ -724,9 +731,11 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 
+ 	private AccessibleCheckBox m_accessibleScreenShake;
+ 
++	private AccessibleMenu m_autoAttackSpeedMenu;
++
+ 	private AccessibleCheckBox m_accessibleAllowSpectators;
+ 
+-	private enum AccessibleMenuState { MAIN_MENU, ADJUSTING_DROPDOWN};
++	private enum AccessibleMenuState { MAIN_MENU, ADJUSTING_DROPDOWN, AUTO_ATTACK_SPEED_MENU};
+ 
+ 	private AccessibleMenuState m_curState;
+ 
+@@ -743,7 +752,10 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 		m_accessibleScreenShake = new AccessibleCheckBox(this, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_ENABLE_SCREEN_SHAKE_OPTION), m_screenShakeCheckbox);
+ 		m_accessibleFullScreen = new AccessibleCheckBox(this, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_FULLSCREEN_OPTION), m_fullScreenCheckbox);
+ 		m_accessibleAllowSpectators = new AccessibleCheckBox(this, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_ALLOW_SPECTATORS_OPTION), m_spectatorOpenJoinCheckbox);
+-
++m_autoAttackSpeedMenu=new AccessibleMenu(this, "", BackToMainMenu);
++foreach(float k in m_autoAttackSpeeds.Keys) {
++	m_autoAttackSpeedMenu.AddOption(m_autoAttackSpeeds[k],() => SetAutoAttackSpeed(k));
++}
+ 		SetupMainMenu();
+ 	}
+ 
+@@ -754,6 +766,7 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 
+ 		m_accessibleMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SOUND_OPTIONS_MENU_TITLE), m_soundOptionsButton.TriggerRelease);
+ 		m_accessibleMenu.AddOption(m_speechInBackground.GetText, m_speechInBackground.Toggle);
++		m_accessibleMenu.AddOption(getAutoAttackSpeedText, setAutoAttackSpeed);
+ 		m_accessibleMenu.AddOption(m_accessibleGraphicsResolution.GetText, () => OnClickDropdown(m_accessibleGraphicsResolution));
+ 		m_accessibleMenu.AddOption(m_accessibleGraphicsQuality.GetText, () => OnClickDropdown(m_accessibleGraphicsQuality));
+ 		m_accessibleMenu.AddOption(m_accessibleFrameRate.GetText, () => OnClickDropdown(m_accessibleFrameRate));
+@@ -764,7 +777,21 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 
+ 		m_accessibleMenu.StartReading();
+ 	}
++private string getAutoAttackSpeedText() {
++		string curSpeed="";
++		m_autoAttackSpeeds.TryGetValue(Options.Get().GetFloat(Option.ACCESSIBILITY_AUTO_ATTACK_SPEED),out curSpeed);
++	return LocalizationUtils.Format(LocalizationKey.OPTIONS_MENU_AUTO_ATTACK_SPEED,curSpeed);
++
++}
++	private void setAutoAttackSpeed() {
++	m_curState=AccessibleMenuState.AUTO_ATTACK_SPEED_MENU;
++	m_autoAttackSpeedMenu.StartReading();
++}
+ 
++private void SetAutoAttackSpeed(float speed) {
++	Options.Get().SetFloat(Option.ACCESSIBILITY_AUTO_ATTACK_SPEED, speed);
++	BackToMainMenu();
++}
+ 	private void BackToMainMenu()
+ 	{
+ 		m_curState = AccessibleMenuState.MAIN_MENU;
+@@ -783,6 +810,7 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 				Options.Get().SetBool(Option.ACCESSIBILITY_BACKGROUND_SPEECH, !(Options.Get().GetBool(Option.ACCESSIBILITY_BACKGROUND_SPEECH)));
+ 	}
+ 
++
+ 	private bool GetSpeechinBackgroundState()
+ 	{
+ 		return Options.Get().GetBool(Option.ACCESSIBILITY_BACKGROUND_SPEECH);
+@@ -798,6 +826,11 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+ 		{
+ 			m_curAccessibleDropdown?.HandleInput();
+ 		}
++				else if (m_curState == AccessibleMenuState.AUTO_ATTACK_SPEED_MENU)
++		{
++			m_autoAttackSpeedMenu?.HandleAccessibleInput();
++		}
++
+ 	}
+ 
+ 	public string GetAccessibleHelp()

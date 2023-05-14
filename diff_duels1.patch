@@ -1,0 +1,349 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs b/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
+index 538ff3c..81ba8c7 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameModeScene.cs
+@@ -41,6 +41,7 @@ namespace Accessibility
+         {
+             m_mainMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_CHOOSE_MODE), OnClickBackButton);
+             m_mainMenu.AddOption(LocalizedText.MODES_ARENA_OPTION, OnClickArena);
++            m_mainMenu.AddOption(LocalizedText.MODES_DUELS_OPTION, OnClickDuels);
+             m_mainMenu.AddOption(LocalizedText.MODES_SOLO_ADVENTURES_OPTION, OnClickSoloAdventures);
+             m_mainMenu.AddOption(LocalizedText.SCREEN_GO_BACK, OnClickBackButton);
+ 
+@@ -77,6 +78,20 @@ namespace Accessibility
+             GameModeDisplay.Get().SelectMode(arenaButton);
+             GameModeDisplay.Get().m_playButton.TriggerRelease();
+         }
++
++        private void OnClickDuels()
++        {
++            var duelsButton = GetDuelsButton();
++
++            if (duelsButton == null)
++            {
++                AccessibilityUtils.LogFatalError(new Exception("Could not find duels button"));
++            }
++
++            GameModeDisplay.Get().SelectMode(duelsButton);
++            GameModeDisplay.Get().m_playButton.TriggerRelease();
++        }
++
+         private GameModeButtonDataModel GetSoloAdventuresButton()
+         {
+             foreach (var button in m_gameModeSceneDataModel.GameModeButtons)
+@@ -103,6 +118,19 @@ namespace Accessibility
+             return null;
+         }
+ 
++        private GameModeButtonDataModel GetDuelsButton()
++        {
++            foreach (var button in m_gameModeSceneDataModel.GameModeButtons)
++            {
++                if (button.GameModeRecordId == 3)
++                {
++                    return button;
++                }
++            }
++
++            return null;
++        }
++
+         public void HandleInput()
+         {
+             if (m_curState == State.MAIN_MENU)
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index a4414e5..5c1fae1 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -60,6 +60,7 @@ public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST = CreateKey("A
+     // Global
+     public static LocalizationKey GLOBAL_SOLO_ADVENTURES = CreateKey("GLUE_ADVENTURE");
+         public static LocalizationKey GLOBAL_ARENA    = CreateKey("ACCESSIBILITY_MODES_ARENA");
++        public static LocalizationKey GLOBAL_DUELS    = CreateKey("ACCESSIBILITY_MODES_DUELS");
+     public static LocalizationKey GLOBAL_BATTLEGROUNDS = CreateKey("GLUE_BACON");
+     public static LocalizationKey GLOBAL_GAME_MODES = CreateKey("GLUE_GAME_MODES");
+     public static LocalizationKey GLOBAL_CHOOSE_MODE = CreateKey("GLUE_GAME_MODES_POPUP_HEADER");
+@@ -831,6 +832,9 @@ public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST = CreateKey("A
+     public static LocalizationKey SCREEN_BATTLEGROUNDS_READ_STATS = CreateKey("ACCESSIBILITY_SCREEN_BATTLEGROUNDS_READ_STATS");
+     public static LocalizationKey SCREEN_BATTLEGROUNDS_OPTIONS_NARRATE_ATTACKS = CreateKey("ACCESSIBILITY_SCREEN_BATTLEGROUNDS_OPTIONS_NARRATE_ATTACKS");
+ 
++    // Duels main menu
++    public static LocalizationKey SCREEN_DUELS_READ_STATS = CreateKey("ACCESSIBILITY_DUELS_READ_STATS");
++
+     // Quest progress toast
+     public static LocalizationKey TOAST_QUEST_PROGRESS_TOAST_TITLE = CreateKey("ACCESSIBILITY_TOAST_QUEST_PROGRESS_TOAST_TITLE");
+     public static LocalizationKey TOAST_QUEST_PROGRESS_TOAST_PROGRESS = CreateKey("ACCESSIBILITY_TOAST_QUEST_PROGRESS_TOAST_PROGRESS");
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs b/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
+index e313e65..9b84205 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizedText.cs
+@@ -23,6 +23,7 @@ class LocalizedText
+     public static string MODES_MENU_TITLE => LocalizationUtils.Get(LocalizationKey.GLOBAL_CHOOSE_MODE);
+     public static string MODES_SOLO_ADVENTURES_OPTION => LocalizationUtils.Get(LocalizationKey.GLOBAL_SOLO_ADVENTURES);
+         public static string MODES_ARENA_OPTION => LocalizationUtils.Get(LocalizationKey.GLOBAL_ARENA);
++        public static string MODES_DUELS_OPTION => LocalizationUtils.Get(LocalizationKey.GLOBAL_DUELS);
+ 
+     // Global
+     public static string GLOBAL_GAME_LOADED => LocalizationUtils.Get(LocalizationKey.GLOBAL_GAME_LOADED);
+diff --git a/Assembly-CSharp/DuelsPopupManager.cs b/Assembly-CSharp/DuelsPopupManager.cs
+index fa938e8..725a582 100644
+--- a/Assembly-CSharp/DuelsPopupManager.cs
++++ b/Assembly-CSharp/DuelsPopupManager.cs
+@@ -1,5 +1,6 @@
+ using System;
+ using System.Collections.Generic;
++using Accessibility;
+ using Assets;
+ using Blizzard.GameService.SDK.Client.Integration;
+ using Blizzard.T5.MaterialService.Extensions;
+@@ -11,7 +12,7 @@ using Hearthstone.UI;
+ using PegasusUtil;
+ using UnityEngine;
+ 
+-public class DuelsPopupManager : MonoBehaviour, IStore
++public class DuelsPopupManager : MonoBehaviour, IStore, AccessibleScreen
+ {
+ 	private const string HEROIC_STORE_OPENED_EVENT = "HEROIC_STORE_OPENED";
+ 
+@@ -306,6 +307,7 @@ public class DuelsPopupManager : MonoBehaviour, IStore
+ 	{
+ 		this.OnProductOpened?.Invoke();
+ 		m_visualController.SetState("OPEN");
++		ReadScreen();
+ 	}
+ 
+ 	public void ShowNotice(string header, string desc, string rating, Action callback)
+@@ -660,4 +662,58 @@ public class DuelsPopupManager : MonoBehaviour, IStore
+ 		}
+ 		return hashSet;
+ 	}
++	#region Accessibility
++	private enum State { LOADING, DUELS_TYPE_CHOOSING };
++	private State m_curState = State.LOADING;
++	private AccessibleHorizontalMenu<AccessibleMultilineText> m_currMenu;
++	private void onClickNormal()
++	{
++		OnNormalButtonPressed(null);
++		m_curState = State.LOADING;
++	}
++	private void onGoBackToHub()
++	{
++		m_curState = State.LOADING;
++		Hide();
++	}
++	private void SetupDuelsTypeMenu()
++	{
++		m_currMenu = new AccessibleHorizontalMenu<AccessibleMultilineText>(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_DUELS), onGoBackToHub);
++		m_currMenu.AddOption(new AccessibleMultilineText(this, GameStrings.Get("GLUE_PVPDR_ENTRY_POPUP_LABEL_NORMAL"), GameStrings.Get("GLUE_PVPDR_ENTRY_POPUP_DESCRIPTION_NORMAL")), onClickNormal);
++		// m_currMenu.AddOption(new AccessibleMultilineText(this, GameStrings.Get("GLUE_PVPDR_ENTRY_POPUP_LABEL_HEROIC"), GameStrings.Get("GLUE_PVPDR_ENTRY_POPUP_DESCRIPTION_HEROIC")), onClickHeroic);
++		ReadDuelsTypeMenu();
++	}
++	private void ReadDuelsTypeMenu()
++	{
++		m_curState = State.DUELS_TYPE_CHOOSING;
++		m_currMenu.StartReading();
++	}
++	public void HandleInput()
++	{
++		if (m_curState == State.DUELS_TYPE_CHOOSING)
++		{
++			m_currMenu?.HandleAccessibleInput();
++		}
++	}
++		public string GetHelp()
++	{
++		if (m_curState == State.DUELS_TYPE_CHOOSING)
++		{
++			return m_currMenu?.GetHelp();
++		}
++		return "";
++	}
++	public void OnGainedFocus()
++	{
++		if (m_curState == State.DUELS_TYPE_CHOOSING)
++		{
++			m_currMenu?.StartReading();
++		}
++	}
++	public void ReadScreen()
++	{
++		AccessibilityMgr.SetScreen(this);
++		SetupDuelsTypeMenu();
++	}
++	#endregion
+ }
+diff --git a/Assembly-CSharp/GuestHeroPickerTrayDisplay.cs b/Assembly-CSharp/GuestHeroPickerTrayDisplay.cs
+index 344b5b2..beacb5c 100644
+--- a/Assembly-CSharp/GuestHeroPickerTrayDisplay.cs
++++ b/Assembly-CSharp/GuestHeroPickerTrayDisplay.cs
+@@ -691,7 +691,7 @@ public class GuestHeroPickerTrayDisplay : AbsDeckPickerTrayDisplay, AccessibleSc
+ 
+ 	private void ReadPickerTrayDisplay()
+ 	{
+-		if (!SupportedAdventure())
++		if (!SupportedAdventure() && !SceneMgr.Get().IsInDuelsMode())
+         {
+ 			return;
+         }
+@@ -703,10 +703,15 @@ public class GuestHeroPickerTrayDisplay : AbsDeckPickerTrayDisplay, AccessibleSc
+ 
+ 		var numSupportedBoHHeroes = 11; // Jaina, Rexxar, Garrosh, Uther, Anduin, Valeera, Thrall
+ 				var numSupportedBoMHeroes = 10; // Jaina, Rexxar, Garrosh, Uther, Anduin, Valeera, Thrall
++				var numSupportedDuelsHeroes = 6;
+ 		var selectedAdventure = AdventureConfig.Get().SelectedAdventure;
+ 		var numSupported=0;
+ 		if(selectedAdventure==AdventureDbId.BOH) numSupported=numSupportedBoHHeroes;
+ 		if(selectedAdventure==AdventureDbId.BOM) numSupported=numSupportedBoMHeroes;
++		if (SceneMgr.Get().IsInDuelsMode())
++		{
++			numSupported = numSupportedDuelsHeroes;
++		}
+ 		//foreach (var hb in m_heroButtons)
+ 		for (var i = 0; i < numSupported; i++)
+         {
+diff --git a/Assembly-CSharp/PvPDungeonRunDisplay.cs b/Assembly-CSharp/PvPDungeonRunDisplay.cs
+index e4ded39..de30bf4 100644
+--- a/Assembly-CSharp/PvPDungeonRunDisplay.cs
++++ b/Assembly-CSharp/PvPDungeonRunDisplay.cs
+@@ -461,4 +461,5 @@ public class PvPDungeonRunDisplay : MonoBehaviour
+ 			});
+ 		}
+ 	}
++
+ }
+diff --git a/Assembly-CSharp/PvPDungeonRunScene.cs b/Assembly-CSharp/PvPDungeonRunScene.cs
+index 2d53978..d15dd73 100644
+--- a/Assembly-CSharp/PvPDungeonRunScene.cs
++++ b/Assembly-CSharp/PvPDungeonRunScene.cs
+@@ -1,13 +1,15 @@
+ using System;
+ using System.Collections;
++using System.Collections.Generic;
+ using Assets;
++using Accessibility;
+ using Hearthstone.DataModels;
+ using Hearthstone.DungeonCrawl;
+ using PegasusUtil;
+ using UnityEngine;
+ 
+ [CustomEditClass]
+-public class PvPDungeonRunScene : PegasusScene
++public class PvPDungeonRunScene : PegasusScene, AccessibleScreen
+ {
+ 	[CustomEditField(T = EditType.GAME_OBJECT)]
+ 	public String_MobileOverride m_screenPrefab;
+@@ -263,6 +265,7 @@ public class PvPDungeonRunScene : PegasusScene
+ 		m_displayRoot.SetActive(value: true);
+ 		m_displayRoot.transform.localPosition = Vector3.up;
+ 		m_display.EnableButtons(enabled: false);
++		ReadScreen();
+ 	}
+ 
+ 	public void SetAdventureData()
+@@ -557,6 +560,7 @@ public class PvPDungeonRunScene : PegasusScene
+ 		obj.EnableInput(enable: false);
+ 		obj.PopulateSetFilters(shouldReset: true);
+ 		SceneMgr.Get().NotifySceneLoaded();
++		ReadScreen();
+ 	}
+ 
+ 	public DuelsPopupManager GetPopupManager()
+@@ -584,4 +588,98 @@ public class PvPDungeonRunScene : PegasusScene
+ 			popupManager.ShowNotice(header, message, rating, callback);
+ 		}
+ 	}
++
++	#region Accessibility
++
++	private enum State { LOADING, MAIN_MENU, READING_STATS };
++
++	private State m_curState = State.LOADING;
++	private AccessibleMenu m_curMenu;
++	private AccessibleMultilineText m_accessibleStats;
++
++	private void ReadScreen()
++	{
++		AccessibilityMgr.SetScreen(this);
++		m_curMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_DUELS), OnGoBackToHub);
++		m_curMenu.AddOption(m_display.m_playButton.m_newPlayButtonText.Text, OnClickPlay);
++		m_curMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SCREEN_DUELS_READ_STATS), OnReadStats);
++		ReadMainMenu();
++	}
++	private void ReadMainMenu()
++	{
++		m_curState = State.MAIN_MENU;
++		m_curMenu.StartReading();
++	}
++	private void OnReadStats()
++	{
++		var PVPDRLobbyDataModel = m_display.GetPVPDRLobbyDataModel();
++		var casualRatingCount = PVPDRLobbyDataModel.Rating;
++		var heroicRatingCount = PVPDRLobbyDataModel.PaidRating;
++		var seasonEndInfo = PVPDRLobbyDataModel.Season;
++		var lines = new List<string>();
++		lines.Add(AccessibleSpeechUtils.CombineWordsWithColon(GameStrings.Get("GLUE_PVPDR_RATING_LABEL_NORMAL"), $"{casualRatingCount}"));
++		lines.Add(AccessibleSpeechUtils.CombineWordsWithColon(GameStrings.Get("GLUE_PVPDR_RATING_LABEL_HEROIC"), $"{heroicRatingCount}"));
++		m_accessibleStats = new AccessibleMultilineText(this, lines);
++		m_accessibleStats.ReadAllLines();
++		m_curState = State.READING_STATS;
++	}
++	private void OnClickPlay()
++	{
++		var btn = m_display.m_playButton;
++		if(!btn.enabled) {
++			AccessibilityMgr.Output(this,btn.m_newPlayButtonText.Text);
++			return;
++		}
++		m_curState = State.LOADING;
++		btn.TriggerRelease();
++	}
++	private void OnGoBackToHub()
++	{
++		m_curState = State.LOADING;
++		m_display.m_backButton.TriggerRelease();
++	}
++	public void HandleInput()
++	{
++		if (m_curState == State.MAIN_MENU)
++		{
++			m_curMenu?.HandleAccessibleInput();
++		}
++		else if (m_curState == State.READING_STATS)
++		{
++			if (AccessibleKey.BACK.IsPressed())
++			{
++				ReadMainMenu();
++			}
++			else
++			{
++				m_accessibleStats?.HandleAccessibleInput();
++			}
++		}
++	}
++	public string GetHelp()
++	{
++		if (m_curState == State.MAIN_MENU)
++		{
++			return m_curMenu?.GetHelp();
++		}
++		else if (m_curState == State.READING_STATS)
++		{
++			return AccessibleSpeech.PRESS_BACK_TO_GO_BACK;
++		}
++		return "";
++	}
++	public void OnGainedFocus()
++	{
++		if (m_curState == State.MAIN_MENU)
++		{
++			m_curMenu?.StartReading();
++		}
++		else if (m_curState == State.READING_STATS)
++		{
++			m_accessibleStats.ReadAllLines();
++		}
++	}
++
++	#endregion
++
+ }

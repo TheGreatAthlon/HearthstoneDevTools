@@ -1,0 +1,39 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibilityMgr.cs b/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
+index f9c7579..27f88a6 100644
+--- a/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
++++ b/Assembly-CSharp/Accessibility/AccessibilityMgr.cs
+@@ -382,6 +382,10 @@ namespace Accessibility
+                 {
+                     bnetBar.HideFriendList();
+                 }
++                else if (IsSomeOptionsMenuShown())
++                {
++                    bnetBar.HandleEscapeKey();
++                }
+                 else
+ 				{
+ 					bnetBar.ToggleGameMenu();
+@@ -442,6 +446,10 @@ namespace Accessibility
+             {
+                 return true;
+             }
++            else if (SoundOptionsMenu.Get()?.IsShown() ?? false)
++            {
++                return true;
++            }
+ 
+             return false;
+         }
+diff --git a/Assembly-CSharp/BnetBar.cs b/Assembly-CSharp/BnetBar.cs
+index 4220428..152cd22 100644
+--- a/Assembly-CSharp/BnetBar.cs
++++ b/Assembly-CSharp/BnetBar.cs
+@@ -873,7 +873,7 @@ public class BnetBar : MonoBehaviour
+ 		m_isLoggedIn = false;
+ 	}
+ 
+-	private bool HandleEscapeKey()
++	internal bool HandleEscapeKey()
+ 	{
+ 		if (m_gameMenu != null && m_gameMenu.GameMenuIsShown())
+ 		{

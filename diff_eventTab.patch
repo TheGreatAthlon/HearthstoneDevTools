@@ -1,0 +1,298 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs b/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
+index ad776ca..a15f41a 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleAdventureScene.cs
+@@ -31,7 +31,10 @@ private AdventureData.Adventuresubscene m_curSubScene=AdventureData.Adventuresub
+             return s_instance;
+         }
+ 
+-public void AddAdventureButton(AdventureDef def) {
++public void ClearAdventureButtons() {
++    adventures.Clear();
++}
++    public void AddAdventureButton(AdventureDef def) {
+     if(!adventures.Contains(def)) {
+         adventures.Add(def);
+ 
+diff --git a/Assembly-CSharp/Accessibility/AccessibleJournal.cs b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+index 9222731..2f05d96 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleJournal.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+@@ -1,4 +1,5 @@
+ ﻿using System;
++using System.Collections;
+ using System.Collections.Generic;
+ using System.Linq;
+ using UnityEngine;
+@@ -24,11 +25,13 @@ namespace Accessibility
+             ACHIEVEMENT_SUBCATEGORY_MENU,
+             ACHIEVEMENT_LIST,
+             VIEWING_ACHIEVEMENT,
+-            CLAIMING_ACHIEVEMENT
++            CLAIMING_ACHIEVEMENT,
++            VIEWING_EVENT,
++            EVENT_REWARD_TRACK,
++            CHOOSING_EVENT_REWARD_TRACK
+         };
+-
++private int prevPage=-1;
+         private State m_curState = State.LOADING;
+-
+         private Widget m_JournalWidget;
+ 
+         private AccessibleMenu m_mainMenu;
+@@ -47,7 +50,10 @@ namespace Accessibility
+         private AccessibleMenu m_achievementSubcategoryMenu;
+         private AccessibleListOfItems<AccessibleMultilineText> m_achievementListMenu;
+         private AccessibleMenu m_achievementViewer;
+-
++//event menus
++private AccessibleMenu m_eventMenu;
++private AccessibleHorizontalMenu<AccessibleMultilineText> m_chooseRewardTrackMenu;
++        
+         private static AccessibleJournal s_instance = new AccessibleJournal();
+ 
+         internal static AccessibleJournal Get()
+@@ -117,9 +123,12 @@ namespace Accessibility
+             var rewardButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "RewardButton/JournalButtonTab/Root");
+             var achievementButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "AchievementButton/JournalButtonTab/Root");
+             var profileButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "ProfileButton/JournalButtonTab/Root");
+-                        //var eventButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "EventButton/JournalButtonTab/Root");
+-
++                        var eventButton = AccessibleWidgetUtils.GetPegUIElement(buttonManager, "Events_WaxSeal");
++//clickto dismiss event popup
+             m_mainMenu = new AccessibleMenu(this, LocalizationUtils.Get(LocalizationKey.GLOBAL_JOURNAL), CloseJournal);
++            if(SpecialEventManager.Get().GetCurrentSpecialEvent()!=null) {
++            m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_EVENT_TAB_TITLE"), () => AccessibleWidgetUtils.ClickButton(eventButton));
++            }
+ 
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_QUESTS_TITLE"), () =>  AccessibleWidgetUtils.ClickButton(questButton));
+             m_mainMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), ReadRewardsTrack);
+@@ -137,14 +146,22 @@ namespace Accessibility
+             m_curState = State.MAIN_MENU;
+ 		}
+ 
+-		internal void OnTabChanged(JournalMetaDataModel data)
++		internal IEnumerator OnTabChanged(JournalMetaDataModel data)
+         {
+-            AccessibilityUtils.LogDebug($"AccessibleJournal.OnTabChanged({data.TabIndex})");
++            if(prevPage==data.TabIndex) yield return null;
++            prevPage=data.TabIndex;
++                        AccessibilityUtils.LogDebug($"AccessibleJournal.OnTabChanged({data.TabIndex})");
+             if (data.TabIndex == 3) ReadAchievementCats();
+-
+             if (data.TabIndex == 1)
+             {
+                 ReadQuestLog();
++            }
++                        if (data.TabIndex == 0)
++            {
++                m_curState=State.LOADING;
++                yield return new WaitForSeconds(1.3f);
++ReadEventTab();
++
+             }
+         }
+ 
+@@ -347,6 +364,91 @@ namespace Accessibility
+             m_JournalWidget.TriggerEvent("HIDE");
+         }
+ 
++#region eventTab
++
++private void ReadEventTab() {
++    SpecialEventDataModel dataModel=SpecialEventManager.Get().GetEventDataModelForCurrentEvent();
++    m_curState=State.VIEWING_EVENT;
++    Transform t = OverlayUI.Get().transform.Find("UICanvasHeightScale/Center/ClosedEnvelopeParent Popup Bone/ClosedEnvelopeParent/ClosedEnvelope/ClosedEnvelope/Clickable");
++    if(t==null) eventMainMenu(dataModel);
++    else {
++        PegUIElement letter=t.GetComponent<PegUIElement>();
++    if(letter!=null) {
++        for(int x=0; x<6; x++) { // you have to try to click repeatedly until it works, 6 is usually enough times
++            letter.TriggerRelease();
++        letter.TriggerPress();
++        }
++        OverlayUI.Get().StartCoroutine(ReadOpenLetter(dataModel, letter));
++    } else {
++        eventMainMenu(dataModel);
++    }
++    }
++}
++private IEnumerator ReadOpenLetter(SpecialEventDataModel dataModel, PegUIElement oldLetter) {
++    yield return new WaitForSeconds(1.1f);
++    GameObject letter = OverlayUI.Get().transform.Find("UICanvasHeightScale/Center/LetterContentsParent Popup Bone/LetterContentsParent/LetterContents/EventLetterContents").gameObject;
++    AccessibleUnityUtils.DebugGameObject(letter);
++    UberText[] texts=letter.GetComponentsInChildren<UberText>();
++foreach(UberText t in texts) {
++    AccessibilityMgr.Output(null,GameStrings.Format(t.Text));
++}
++        yield return new WaitForSeconds(0.7f);
++        PegUIElement[] buttons=letter.GetComponentsInChildren<PegUIElement>();
++    foreach(PegUIElement b in buttons) {
++        for(var i=0; i<5; i++) {
++        b.TriggerRelease();
++                b.TriggerPress();
++        }
++    }
++    eventMainMenu(dataModel);
++        
++}
++private void eventMainMenu(SpecialEventDataModel dataModel) {
++        m_eventMenu = new AccessibleMenu(this,dataModel.Name,ReadJournal);
++    if(dataModel.ChooseTrackPrompt!=""&&dataModel.ActiveTrackId==0) {
++        m_eventMenu.AddOption(dataModel.ChooseTrackPrompt, () => ChooseEventTrack(dataModel.RewardTracks, dataModel.ChooseTrackPrompt));
++    }
++    else {
++        m_eventMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), ReadRewardsTrack);
++    }
++    m_eventMenu.StartReading();
++
++}
++private void ChooseEventTrack(DataModelList<int> trackList, string prompt) {
++    m_curState=State.CHOOSING_EVENT_REWARD_TRACK;
++    List<int> tracks=trackList.ToList<int>();
++    m_chooseRewardTrackMenu=new AccessibleHorizontalMenu<AccessibleMultilineText>(this, prompt, null);
++        foreach(int track in tracks) {
++            List<string> lines=new List<string>();
++            EventRewardTrackDbfRecord eventRewardTrack=GameDbf.EventRewardTrack.GetRecord(track);
++            RewardTrackDbfRecord rewardTrack=GameDbf.RewardTrack.GetRecord(track);
++            if(rewardTrack==null) continue;
++            lines.Add(rewardTrack.Name.GetString());
++            foreach(RewardTrackLevelDbfRecord level in rewardTrack.Levels) {
++                string rewardDesc="";
++                if(level.FreeRewardListRecord!=null)  rewardDesc=LocalizationUtils.Format(LocalizationKey.ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_DESC, level.FreeRewardListRecord.Description.GetString());
++                lines.Add(LocalizationUtils.Format(LocalizationKey.ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_PREVIEW,level.Level,level.XpNeeded)+rewardDesc);
++            }
++
++            AccessibleMultilineText item=new AccessibleMultilineText(this,lines);
++            m_chooseRewardTrackMenu.AddOption(item,() => SelectTrack(track));
++
++        }
++    m_chooseRewardTrackMenu.StartReading();
++}
++
++public void SelectTrack(int id) {
++			RewardTrackManager rewardTrackManager = RewardTrackManager.Get();
++			if (rewardTrackManager == null)
++			{
++				Debug.LogError("[Journal] Attempting to activate a reward track without a valid RewardTrackManager.");
++				return;
++			}
++			rewardTrackManager.SetActiveEventRewardTrack(id);
++            ReadJournal();
++
++}
++#endregion
+         public void HandleAccessibleInput()
+         {
+ 			if ((m_curState == State.READING_DAILY_QUESTS || m_curState == State.READING_WEEKLY_QUESTS) && AccessibleKey.BACK.IsPressed())
+@@ -362,7 +464,15 @@ namespace Accessibility
+             {
+                 m_mainMenu?.HandleAccessibleInput();
+             }
+-            else if (m_curState == State.READING_DAILY_QUESTS)
++                        else if (m_curState == State.VIEWING_EVENT)
++            {
++				m_eventMenu?.HandleAccessibleInput();
++			}
++                        else if (m_curState == State.CHOOSING_EVENT_REWARD_TRACK)
++            {
++				m_chooseRewardTrackMenu?.HandleAccessibleInput();
++			}
++else if (m_curState == State.READING_DAILY_QUESTS)
+             {
+ 				m_dailyQuests?.HandleAccessibleInput();
+ 			}
+@@ -374,7 +484,7 @@ namespace Accessibility
+             {
+                 m_questsMenu?.HandleAccessibleInput();
+             }
+-            else if (m_curState == State.REWARDS_TRACK_MENU)
++            else if (m_curState == State.REWARDS_TRACK_MENU||m_curState==State.EVENT_REWARD_TRACK)
+             {
+                 m_rewardsTrackMenu?.HandleAccessibleInput();
+             }
+@@ -426,6 +536,14 @@ else if (m_curState == State.CHOOSING_REWARD)
+             {
+                 return m_mainMenu?.GetHelp();
+             }
++                        else if (m_curState == State.VIEWING_EVENT)
++            {
++				return m_eventMenu?.GetHelp();
++			}
++                        else if (m_curState == State.CHOOSING_EVENT_REWARD_TRACK)
++            {
++				return m_chooseRewardTrackMenu?.GetHelp();
++			}
+             else if (m_curState == State.READING_DAILY_QUESTS || m_curState == State.READING_WEEKLY_QUESTS)
+             {
+                 return LocalizationUtils.Get(LocalizationKey.UI_QUEST_NOTIFICATION_POPUP_HELP);
+@@ -477,7 +595,8 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+ 			m_rewardsTrackMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_REWARDS_TRACK_READ_LEVEL), ReadRewardsTrackLevel);
+ 
+ 			m_rewardsTrackMenu.StartReading();
+-			m_curState = State.REWARDS_TRACK_MENU;
++			if(m_curState==State.VIEWING_EVENT) m_curState=State.EVENT_REWARD_TRACK;
++            else m_curState = State.REWARDS_TRACK_MENU;
+ 		}
+ 
+         private int GetCurrentTrackLevel()
+@@ -721,6 +840,7 @@ m_achievementChooseOne=false;
+ 
+         private RewardTrack GetRewardTrack()
+ 		{
++            if(m_curState==State.VIEWING_EVENT||m_curState==State.EVENT_REWARD_TRACK) return RewardTrackManager.Get().GetCurrentEventRewardTrack();
+             return RewardTrackManager.Get().GetRewardTrack(m_rewardTrackType);
+             //return RewardTrackManager.Get().GetCurrentRewardTrack(Assets.Achievement.RewardTrackType.GLOBAL);
+ 		}
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 31e6682..e7d196c 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -1031,6 +1031,8 @@ public class LocalizationKey
+                                                                                                 public static LocalizationKey ACHIEVEMENT_CLAIMABLE = CreateKey("ACCESSIBILITY_ACHIEVEMENT_CLAIMABLE");
+                                                                                                 public static LocalizationKey ACHIEVEMENT_VIEW_EARN = CreateKey("ACCESSIBILITY_ACHIEVEMENT_VIEW_EARN");
+                                                                 public static LocalizationKey ACHIEVEMENT_COULD_NOT_CLAIM = CreateKey("ACCESSIBILITY_ACHIEVEMENT_COULD_NOT_CLAIM");
++                                                                public static LocalizationKey ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_PREVIEW=CreateKey("ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_PREVIEW");
++                                                                public static LocalizationKey ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_DESC=CreateKey("ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_DESC");
+     public string Key { get; private set; }
+ 
+     private LocalizationKey(string key)
+diff --git a/Assembly-CSharp/AdventureChooserTray.cs b/Assembly-CSharp/AdventureChooserTray.cs
+index 5ac4525..bc8eecb 100644
+--- a/Assembly-CSharp/AdventureChooserTray.cs
++++ b/Assembly-CSharp/AdventureChooserTray.cs
+@@ -75,6 +75,7 @@ public class AdventureChooserTray : AccordionMenuTray
+ 
+ 	protected IEnumerator InitTrayWhenReady()
+ 	{
++		Accessibility.AccessibleAdventureScene.Get().ClearAdventureButtons();
+ 		if (m_ChooseFrameScroller == null || m_ChooseFrameScroller.ScrollObject == null)
+ 		{
+ 			Debug.LogError("m_ChooseFrameScroller or m_ChooseFrameScroller.m_ScrollObject cannot be null. Unable to create button.", this);
+diff --git a/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs b/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
+index 75fbe2f..e625737 100644
+--- a/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
++++ b/Assembly-CSharp/Hearthstone/Progression/JournalTrayDisplay.cs
+@@ -155,7 +155,7 @@ namespace Hearthstone.Progression
+ 						}
+ 						m_journalMetaDatamodel.DoneChangingTabs = true;
+ 					}, null, callImmediatelyIfSet: true, doOnce: true);
+-          AccessibleJournal.Get().OnTabChanged(m_journalMetaDatamodel);
++          StartCoroutine(AccessibleJournal.Get().OnTabChanged(m_journalMetaDatamodel));
+ 					return;
+ 				}
+ 				m_simulateFirstTransition = false;
+@@ -182,8 +182,11 @@ namespace Hearthstone.Progression
+ 					m_widget.Show();
+ 				}
+ 				m_journalMetaDatamodel.DoneChangingTabs = true;
+-				AccessibleJournal.Get().OnTabChanged(m_journalMetaDatamodel);
++          StartCoroutine(AccessibleJournal.Get().OnTabChanged(m_journalMetaDatamodel));
+ 			}, null, callImmediatelyIfSet: true, doOnce: true);
+ 		}
+ 	}
++
++	#region accessibility
++	#endregion
+ }

@@ -1,0 +1,18 @@
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+index 9595e1e..944bb4b 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+@@ -17,11 +17,10 @@ namespace Accessibility
+ 
+             var heroCard = GameState.Get().GetFriendlySidePlayer().GetHero();
+ 
+-			var progress = heroCard.GetTag(GAME_TAG.BACON_HERO_BUDDY_PROGRESS);
+-            ret.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_PLAYER_BUDDY_METER, progress));
+-
+             ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(heroCard.GetCardId()));
+ 
++            ret.Insert(1, AccessibleCardUtils.GetCost(m_card));
++
+             return ret;
+ 		}
+ 	}

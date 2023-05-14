@@ -1,0 +1,40 @@
+diff --git a/Assembly-CSharp/Reward.cs b/Assembly-CSharp/Reward.cs
+index 108d7ad..5889b22 100644
+--- a/Assembly-CSharp/Reward.cs
++++ b/Assembly-CSharp/Reward.cs
+@@ -401,17 +401,25 @@ public abstract class Reward : MonoBehaviour, AccessibleUI
+ 		m_accessibleReward.ReadAllLines();
+     }
+ 
+-    public void HandleAccessibleInput()
+-    {
+-        if (AccessibleKey.CONFIRM.IsPressed())
+-        {
+-			AccessibleInputMgr.ClickCenterOfScreen(); // TODO: Refactor tests to make this the endgame screen (even if a dummy one like in rank changes)
+-        }
+-        else
+-        {
++	public void HandleAccessibleInput()
++	{
++		if (AccessibleKey.CONFIRM.IsPressed())
++		{
++			var endGameScreen = GetComponentInParent<EndGameScreen>();
++			if (endGameScreen != null)
++			{
++				endGameScreen.m_hitbox.TriggerRelease();
++			}
++			else
++			{
++				AccessibleInputMgr.ClickCenterOfScreen(); // TODO: Refactor tests to make this the endgame screen (even if a dummy one like in rank changes)
++			}
++		}
++		else
++		{
+ 			m_accessibleReward.HandleAccessibleInput();
+-        }
+-    }
++		}
++	}
+ 
+     public string GetAccessibleHelp()
+     {

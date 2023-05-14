@@ -1,0 +1,122 @@
+diff --git a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
+index 7425115..e32f145 100644
+--- a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
++++ b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
+@@ -1181,7 +1181,7 @@ namespace Accessibility
+         {
+             var editingDeckCards = new List<AccessibleEditingDeckCard>();
+ 
+-            foreach (var cardTile in GetNonMissingCardTiles())
++            foreach (var cardTile in GetCardTilesInUse())
+             {
+                 editingDeckCards.Add(new AccessibleEditingDeckCard(this, cardTile));
+             }
+@@ -1189,7 +1189,7 @@ namespace Accessibility
+             return editingDeckCards;
+         }
+ 
+-        private List<DeckTrayDeckTileVisual> GetNonMissingCardTiles()
++        private List<DeckTrayDeckTileVisual> GetCardTilesInUse()
+         {
+             var ret = new List<DeckTrayDeckTileVisual>();
+ 
+@@ -1198,7 +1198,7 @@ namespace Accessibility
+ 
+             foreach (var cardTile in cardTiles)
+             {
+-                if (cardTile.IsInUse() && !IsMissing(cardTile))
++                if (cardTile.IsInUse())
+                 {
+                     ret.Add(cardTile);
+                 }
+@@ -1207,10 +1207,7 @@ namespace Accessibility
+             return ret;
+         }
+ 
+-        private bool IsMissing(DeckTrayDeckTileVisual cardTile)
+-        {
+-            return cardTile.GetGhostedState() != CollectionDeckTileActor.GhostedState.NONE;
+-        }
++
+ 
+         private void EditDeckAddCards()
+         {
+diff --git a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleEditingDeckCard.cs b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleEditingDeckCard.cs
+index ac76d3d..2edee86 100644
+--- a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleEditingDeckCard.cs
++++ b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleEditingDeckCard.cs
+@@ -24,7 +24,27 @@ namespace Accessibility
+         {
+             int count = m_cardTile.GetSlot()?.Count ?? 1;
+             m_card = new AccessibleCollectibleCard(m_parent, m_collectibleCard, count);
+-            return m_card.GetLines();
++            var lines = m_card.GetLines();
++            var eligibility = GetEligibility();
++            if (eligibility != null) {
++                lines.Insert(1, eligibility);
++            }
++            return lines;
++        }
++
++        private string GetEligibility() {
++            var deck = m_cardTile.GetDeck();
++            if (!deck.Runes.CanAddRunes(m_collectibleCard.Runes, 3)) {
++                return LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_INVALID_CARD);
++            }
++            switch (deck.GetSlotStatus(m_cardTile.GetSlot())) {
++                case CollectionDeck.SlotStatus.MISSING:
++                return GameStrings.Get("GLUE_COLLECTION_MANAGER_SEARCH_MISSING");
++                case CollectionDeck.SlotStatus.NOT_VALID:
++                return LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_INVALID_CARD);
++                default:
++                return null;
++            }
+         }
+ 
+         public DeckTrayDeckTileVisual GetCardTile()
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index ec0c158..acad27b 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -753,6 +753,7 @@ public class LocalizationKey
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_ADD_CARDS_OPTION = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_ADD_CARDS_OPTION");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION_EMPTY_DECK = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION_EMPTY_DECK");
++    public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_INVALID_CARD = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_INVALID_CARD");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_RENAME_DECK_OPTION = CreateKey("GLUE_COLLECTION_DECK_RENAME");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_COPY_DECK_OPTION = CreateKey("GLUE_COLLECTION_DECK_COPY_TOOLTIP_HEADLINE");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK");
+diff --git a/Assembly-CSharp/CollectionDeckTray.cs b/Assembly-CSharp/CollectionDeckTray.cs
+index 66ce5d1..e0c8bcb 100644
+--- a/Assembly-CSharp/CollectionDeckTray.cs
++++ b/Assembly-CSharp/CollectionDeckTray.cs
+@@ -1433,11 +1433,13 @@ public class CollectionDeckTray : EditableDeckTray
+ 			HideDeckBigCard(cardTile);
+ 			return;
+ 		}
++		/* This is not accessible at the moment.
+ 		CollectionDeckSlot slot = cardTile.GetSlot();
+ 		if (!editedDeck.IsValidSlot(slot, ignoreOwnership: false, ignoreGameplayEvent: false, enforceRemainingDeckRuleset: true))
+ 		{
+ 			m_cardsContent.ShowDeckHelper(slot, replaceSingleSlotOnly: true);
+ 		}
++		*/
+ 		else if (!(CollectionInputMgr.Get() == null) && !TavernBrawlDisplay.IsTavernBrawlViewing())
+ 		{
+ 			CollectionDeckTileActor actor = cardTile.GetActor();
+diff --git a/Assembly-CSharp/DeckTrayDeckTileVisual.cs b/Assembly-CSharp/DeckTrayDeckTileVisual.cs
+index b671307..68258cf 100644
+--- a/Assembly-CSharp/DeckTrayDeckTileVisual.cs
++++ b/Assembly-CSharp/DeckTrayDeckTileVisual.cs
+@@ -242,4 +242,11 @@ public class DeckTrayDeckTileVisual : PegUIElement
+ 		}
+ 		return m_actor.GetEntityDef()?.HasRuneCost ?? false;
+ 	}
++
++	#region Accessibility
++	internal CollectionDeck GetDeck() {
++		return m_deck;
++	}
++	#endregion
++
+ }
