@@ -1,0 +1,170 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleMenu.cs b/Assembly-CSharp/Accessibility/AccessibleMenu.cs
+index 2143678..856c65b 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleMenu.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleMenu.cs
+@@ -342,5 +342,11 @@ namespace Accessibility
+         {
+             return m_options.Count;
+         }
++
++        public void Clear()
++        {
++            m_options.Clear();
++            m_curOptionIdx = 0;
++        }
+     }
+ }
+diff --git a/Assembly-CSharp/MiniSetProductPage.cs b/Assembly-CSharp/MiniSetProductPage.cs
+index 383b6b3..3d02629 100644
+--- a/Assembly-CSharp/MiniSetProductPage.cs
++++ b/Assembly-CSharp/MiniSetProductPage.cs
+@@ -6,7 +6,6 @@ using Hearthstone.DataModels;
+ using Hearthstone.UI;
+ using UnityEngine;
+ using Accessibility;
+-using System.Collections.Generic;
+ 
+ public class MiniSetProductPage : ProductPage
+ {
+@@ -133,13 +132,14 @@ public class MiniSetProductPage : ProductPage
+ 
+ 	private AccessibleListOfItems<AccessibleCollectibleCard> m_accessibleCards;
+ 
+-	protected override void SetupVariantMenuOptions(ProductDataModel variant)
++	protected override void SetupVariantMenuOptions()
+ 	{
++		var variant = m_productSelection.Variant;
+ 		var buyText = AccessibleShopUtils.GetBuyText(variant);
+ 
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_CARDS), () => ReadCards());
+-		m_readingVariantMenu.AddOption(buyText, () => BuyVariant(variant));
++		m_readingVariantMenu.AddOption(buyText, () => BuyVariant());
+ 	}
+ 
+ 	private void ReadCards()
+diff --git a/Assembly-CSharp/ProductPage.cs b/Assembly-CSharp/ProductPage.cs
+index c3af42c..d8d7d49 100644
+--- a/Assembly-CSharp/ProductPage.cs
++++ b/Assembly-CSharp/ProductPage.cs
+@@ -154,9 +154,15 @@ public class ProductPage : MonoBehaviour
+ 		{
+ 			SetVariantQuantityAndUpdateDataModel(variant, quantity);
+ 			m_parentShop.BlockInterface(blocked: false);
++
++			SetupVariantMenuOptions();
++			m_readingVariantMenu.StartReading(false);
+ 		}, delegate
+ 		{
+ 			m_parentShop.BlockInterface(blocked: false);
++
++			SetupVariantMenuOptions();
++			m_readingVariantMenu.StartReading(false);
+ 		});
+ 		return true;
+ 	}
+@@ -537,8 +543,9 @@ public class ProductPage : MonoBehaviour
+ 
+ 	private AccessibleMultilineText m_variantDescription;
+ 
+-	protected void BuyVariant(ProductDataModel variant)
++	protected void BuyVariant()
+ 	{
++		var variant = GetSelectedVariant();
+ 		(var hasEnough, var currency) = AccessibleShopUtils.HasEnoughToBuyVariant(variant);
+ 
+ 		if (currency == CurrencyType.GOLD)
+@@ -620,13 +627,14 @@ public class ProductPage : MonoBehaviour
+ 	{
+ 		SelectVariant(variant);
+ 
+-		SetupVariantMenu(variant, hasOtherVariants);
++		SetupVariantMenu(hasOtherVariants);
+ 
+ 		ReadVariantMenu();
+ 	}
+ 
+-	private void SetupVariantMenu(ProductDataModel variant, bool hasOtherVariants)
++	private void SetupVariantMenu(bool hasOtherVariants)
+ 	{
++		var variant = GetSelectedVariant();
+ 		if (hasOtherVariants)
+ 		{
+ 			m_readingVariantMenu = new AccessibleMenu(m_container, "", ReadChoosingVariantMenu);
+@@ -636,15 +644,21 @@ public class ProductPage : MonoBehaviour
+ 			m_readingVariantMenu = new AccessibleMenu(m_container, variant.Name, () => m_container.Close());
+ 		}
+ 
+-		SetupVariantMenuOptions(variant);
++		SetupVariantMenuOptions();
+ 	}
+ 
+-	protected virtual void SetupVariantMenuOptions(ProductDataModel variant)
++	protected virtual void SetupVariantMenuOptions()
+ 	{
++		var variant = GetSelectedVariant();
+ 		var buyText = AccessibleShopUtils.GetBuyText(variant);
+ 
++		m_readingVariantMenu.Clear();
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
+-		m_readingVariantMenu.AddOption(buyText, () => BuyVariant(variant));
++		m_readingVariantMenu.AddOption(buyText, () => BuyVariant());
++		if (variant.ProductSupportsQuantitySelect())
++		{
++			m_readingVariantMenu.AddOption(GameStrings.Get("GLUE_STORE_QUANTITY_HEADLINE"), () => ShowQuantityPromptForVariant(m_productSelection.VariantIndex));
++		}
+ 	}
+ 
+ 	protected void ReadVariantMenu()
+diff --git a/Assembly-CSharp/SellableDeckProductPage.cs b/Assembly-CSharp/SellableDeckProductPage.cs
+index 17b8bc0..c1d21b6 100644
+--- a/Assembly-CSharp/SellableDeckProductPage.cs
++++ b/Assembly-CSharp/SellableDeckProductPage.cs
+@@ -477,13 +477,14 @@ public class SellableDeckProductPage : ProductPage
+ 
+ 	private AccessibleListOfItems<AccessibleCollectibleCard> m_accessibleCards;
+ 
+-	protected override void SetupVariantMenuOptions(ProductDataModel variant)
++	protected override void SetupVariantMenuOptions()
+ 	{
++		var variant = m_productSelection.Variant;
+ 		var buyText = AccessibleShopUtils.GetBuyText(variant);
+ 
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_ITEM_READ_DESCRIPTION), () => ReadVariantDescription(variant));
+ 		m_readingVariantMenu.AddOption(LocalizationUtils.Get(LocalizationKey.UI_SHOP_READ_CARDS), () => ReadCards());
+-		m_readingVariantMenu.AddOption(buyText, () => BuyVariant(variant));
++		m_readingVariantMenu.AddOption(buyText, () => BuyVariant());
+ 	}
+ 
+ 	private void ReadCards()
+diff --git a/Assembly-CSharp/StoreQuantityPrompt.cs b/Assembly-CSharp/StoreQuantityPrompt.cs
+index b36bec3..4af5505 100644
+--- a/Assembly-CSharp/StoreQuantityPrompt.cs
++++ b/Assembly-CSharp/StoreQuantityPrompt.cs
+@@ -1,5 +1,6 @@
+ using Hearthstone.UI;
+ using UnityEngine;
++using Accessibility;
+ 
+ public class StoreQuantityPrompt : UIBPopup
+ {
+@@ -154,6 +155,9 @@ public class StoreQuantityPrompt : UIBPopup
+ 			m_touchScreenKeyboardType = 0
+ 		};
+ 		UniversalInputManager.Get().UseTextInput(parms);
++
++		AccessibilityMgr.AllowTextInput();
++		AccessibilityMgr.Output(null, m_messageText.Text);
+ 	}
+ 
+ 	private void HideInput()
+@@ -170,6 +174,9 @@ public class StoreQuantityPrompt : UIBPopup
+ 	private void OnInputUpdated(string input)
+ 	{
+ 		m_quantityText.Text = input;
++
++		// Quick hack while the input field is not accessible.
++		AccessibilityMgr.Output(null, input);
+ 	}
+ 
+ 	private void OnInputComplete(string input)

@@ -1,0 +1,76 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibilityUtils.cs b/Assembly-CSharp/Accessibility/AccessibilityUtils.cs
+index 5248ced..c0411a7 100644
+--- a/Assembly-CSharp/Accessibility/AccessibilityUtils.cs
++++ b/Assembly-CSharp/Accessibility/AccessibilityUtils.cs
+@@ -52,6 +52,12 @@ namespace Accessibility
+                 LogFatalError(e);
+             }
+         }
++
++        public static void DebugLoggingToggle() {
++            s_logEnabled=!s_logEnabled;
++            AccessibilityMgr.Output(null,LocalizationUtils.Get(s_logEnabled?LocalizationKey.OPTIONS_MENU_CHECKBOX_CHECKED: LocalizationKey.OPTIONS_MENU_CHECKBOX_NOT_CHECKED));
++
++        }
+         public static string CurateText(string text)
+         {
+             if (text == null || text.Length == 0)
+@@ -64,34 +70,20 @@ namespace Accessibility
+                 LogDebugText($"CT Before: {text}");
+                 text = text.Trim();
+                 text = FixWeirdText(text);
+-                LogDebugText($"CT: {text}");
+                 text = HandleNewLines(text);
+                 text = HandleSequentialBolds(text);
+-                LogDebugText($"CT: {text}");
+                 text = RemoveHTMLTags(text);
+-                LogDebugText($"CT: {text}");
+                 text = RemoveLooseFormattingTags(text);
+-                LogDebugText($"CT: {text}");
+                 text = RemoveReadOnlyCharacters(text);
+-                LogDebugText($"CT: {text}");
+                 text = RemoveAttackHealthParenthesisText(text);
+-                LogDebugText($"CT: {text}");
+                 text = FixForwardSlashes(text);
+-                LogDebugText($"CT: {text}");
+                 text = CapitalizeSentences(text);
+-                LogDebugText($"CT: {text}");
+                 text = RemoveUnderscores(text);
+-                LogDebugText($"CT: {text}");
+                 text = CollapsePeriods(text);
+-                LogDebugText($"CT: {text}");
+                 text = NormalizeSpaces(text);
+-                LogDebugText($"CT: {text}");
+                 text = text.Trim();
+-                LogDebugText($"CT: {text}");
+                 //text = ExpandPlusSigns(text); // Not sure due to localization
+-                LogDebugText($"CT: {text}");
+                 //text = ConvertNumbersToWrittenNumbers(text); // Bad idea as it breaks localization
+-                LogDebugText($"CT: {text}");
+ 
+                 if (text.Length == 0)
+                 {
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 879e6a4..ec0c158 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -27,6 +27,7 @@ public class LocalizationKey
+     public static LocalizationKey OPTIONS_MENU_TITLE = CreateKey("ACCESSIBILITY_OPTIONS_MENU_TITLE");
+     public static LocalizationKey OPTIONS_MENU_GRAPHICS_QUALITY_OPTION = CreateKey("ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_QUALITY_OPTION");
+     public static LocalizationKey OPTIONS_MENU_GRAPHICS_RESOLUTION_OPTION = CreateKey("ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_RESOLUTION_OPTION");
++    public static LocalizationKey OPTIONS_MENU_DEBUG_LOGGING_OPTION = CreateKey("ACCESSIBILITY_OPTIONS_MENU_DEBUG_LOGGING_OPTION");
+     public static LocalizationKey OPTIONS_MENU_FRAME_RATE_OPTION = CreateKey("GLOBAL_OPTIONS_GRAPHICS_FPS_LABEL");
+     public static LocalizationKey OPTIONS_MENU_MASTER_VOLUME_OPTION = CreateKey("GLOBAL_OPTIONS_SOUND_MASTER_VOLUME_LABEL");
+     public static LocalizationKey OPTIONS_MENU_MUSIC_VOLUME_OPTION = CreateKey("GLOBAL_OPTIONS_SOUND_MUSIC_VOLUME_LABEL");
+diff --git a/Assembly-CSharp/OptionsMenu.cs b/Assembly-CSharp/OptionsMenu.cs
+index 50dcc34..e0c8d53 100644
+--- a/Assembly-CSharp/OptionsMenu.cs
++++ b/Assembly-CSharp/OptionsMenu.cs
+@@ -743,6 +743,7 @@ public class OptionsMenu : MonoBehaviour, AccessibleUI
+         m_accessibleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.OPTIONS_MENU_CHECKBOX_LABEL, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_FULLSCREEN_OPTION)), OnToggleFullscreen);
+         m_accessibleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.OPTIONS_MENU_CHECKBOX_LABEL, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_ALLOW_SPECTATORS_OPTION)), OnToggleAllowSpectators);
+         m_accessibleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.OPTIONS_MENU_CHECKBOX_LABEL, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_ENABLE_SCREEN_SHAKE_OPTION)), OnToggleScreenShake);
++		m_accessibleMenu.AddOption(LocalizationUtils.Format(LocalizationKey.OPTIONS_MENU_CHECKBOX_LABEL, LocalizationUtils.Get(LocalizationKey.OPTIONS_MENU_DEBUG_LOGGING_OPTION)), () => AccessibilityUtils.DebugLoggingToggle());
+ 
+ 		m_accessibleMenu.StartReading();
+     }

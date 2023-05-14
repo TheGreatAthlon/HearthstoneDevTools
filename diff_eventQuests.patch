@@ -1,0 +1,140 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleJournal.cs b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+index 2f05d96..8e96949 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleJournal.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleJournal.cs
+@@ -28,7 +28,9 @@ namespace Accessibility
+             CLAIMING_ACHIEVEMENT,
+             VIEWING_EVENT,
+             EVENT_REWARD_TRACK,
+-            CHOOSING_EVENT_REWARD_TRACK
++            CHOOSING_EVENT_REWARD_TRACK,
++            EVENT_QUESTS,
++            CLAIMING_EVENT_REWARD
+         };
+ private int prevPage=-1;
+         private State m_curState = State.LOADING;
+@@ -53,6 +55,7 @@ private int prevPage=-1;
+ //event menus
+ private AccessibleMenu m_eventMenu;
+ private AccessibleHorizontalMenu<AccessibleMultilineText> m_chooseRewardTrackMenu;
++        private AccessibleListOfItems<AccessibleQuest> m_eventQuests;
+         
+         private static AccessibleJournal s_instance = new AccessibleJournal();
+ 
+@@ -366,7 +369,7 @@ ReadEventTab();
+ 
+ #region eventTab
+ 
+-private void ReadEventTab() {
++private void ReadEventTab(bool delay=true) {
+     SpecialEventDataModel dataModel=SpecialEventManager.Get().GetEventDataModelForCurrentEvent();
+     m_curState=State.VIEWING_EVENT;
+     Transform t = OverlayUI.Get().transform.Find("UICanvasHeightScale/Center/ClosedEnvelopeParent Popup Bone/ClosedEnvelopeParent/ClosedEnvelope/ClosedEnvelope/Clickable");
+@@ -409,6 +412,7 @@ private void eventMainMenu(SpecialEventDataModel dataModel) {
+         m_eventMenu.AddOption(dataModel.ChooseTrackPrompt, () => ChooseEventTrack(dataModel.RewardTracks, dataModel.ChooseTrackPrompt));
+     }
+     else {
++        m_eventMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_QUESTS_TITLE"),()=>ReadEventQuests());
+         m_eventMenu.AddOption(GameStrings.Get("GLUE_PROGRESSION_REWARDS_TITLE"), ReadRewardsTrack);
+     }
+     m_eventMenu.StartReading();
+@@ -448,6 +452,21 @@ public void SelectTrack(int id) {
+             ReadJournal();
+ 
+ }
++
++        private void ReadEventQuests() {
++            				QuestManager questManager = QuestManager.Get();
++        				QuestListDataModel m_questList = questManager.CreateActiveQuestsDataModel(Assets.QuestPool.QuestPoolType.EVENT, (Assets.QuestPool.RewardTrackType)GetRewardTrack().TrackDataModel.RewardTrackType, appendTimeUntilNextQuest: true);
++				m_questList.Quests.Sort(QuestManager.SortChainQuestsToFront);                        List<QuestDataModel> quests=m_questList.Quests.ToList();
++                        List<AccessibleQuest> questList=new List<AccessibleQuest>();
++                        foreach(QuestDataModel q in quests) {                            AccessibleQuest newItem=new AccessibleQuest(this,q);
++                            questList.Add(newItem);
++                        }
++                        m_eventQuests=new AccessibleListOfItems<AccessibleQuest>(null,questList);
++                        m_eventQuests.SetGoBackAction(() => ReadEventTab(false));
++                        m_curState=State.EVENT_QUESTS;
++m_eventQuests.StartReading();
++        }
++
+ #endregion
+         public void HandleAccessibleInput()
+         {
+@@ -464,6 +483,10 @@ public void SelectTrack(int id) {
+             {
+                 m_mainMenu?.HandleAccessibleInput();
+             }
++                        else if (m_curState == State.EVENT_QUESTS)
++            {
++				m_eventQuests?.HandleAccessibleInput();
++			}
+                         else if (m_curState == State.VIEWING_EVENT)
+             {
+ 				m_eventMenu?.HandleAccessibleInput();
+@@ -536,7 +559,11 @@ else if (m_curState == State.CHOOSING_REWARD)
+             {
+                 return m_mainMenu?.GetHelp();
+             }
+-                        else if (m_curState == State.VIEWING_EVENT)
++                                                else if (m_curState == State.EVENT_QUESTS)
++            {
++				return m_eventQuests?.GetHelp(true);
++			}
++else if (m_curState == State.VIEWING_EVENT)
+             {
+ 				return m_eventMenu?.GetHelp();
+ 			}
+@@ -635,8 +662,7 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+ 
+             int trackLevel = GetCurrentTrackLevel();
+             int trackId = GetCurrentTrackId();
+-			int levelCap = GetRewardTrack().RewardTrackAsset.LevelCapSoft;
+-
++			int levelCap = Math.Max(GetRewardTrack().RewardTrackAsset.LevelCapSoft,GetRewardTrack().RewardTrackAsset.Levels.Count());
+ 			foreach (var record in GetRewardTrack().RewardTrackAsset.Levels)
+ 			{
+ 				if (trackId == record.RewardTrackId && record.Level <= trackLevel && record.Level <= levelCap && GetRewardTrack().HasUnclaimedRewardsForLevel(record))
+@@ -650,6 +676,7 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+             return ret;
+ 		}
+ 
++#endregion
+ 		private void ClaimRewardsTrackRewards()
+ 		{
+             var unclaimedRewards = GetUnclaimedRewards();
+@@ -690,7 +717,8 @@ else if (m_curState == State.ACHIEVEMENT_LIST)
+ 				}
+                 else
+ 				{
+-					m_curState = State.CLAIMING_REWARD;
++					if(m_curState==State.EVENT_REWARD_TRACK) m_curState=State.CLAIMING_EVENT_REWARD;
++                    else m_curState = State.CLAIMING_REWARD;
+ 					GetRewardTrack().ClaimReward(nextReward.RewardTrackId, nextReward.Level, forPaidTrack);
+ 				}
+ 			}
+@@ -826,10 +854,16 @@ m_achievementChooseOne=false;
+ 
+ 		internal void OnTrackRewardAckd(int rewardTrackId, int level, bool forPaidTrack)
+ 		{
++            
+             if (m_curState == State.CLAIMING_REWARD)
+ 			{
+                 ReadRewardsTrack();
+-			}
++			} else             if (m_curState == State.CLAIMING_EVENT_REWARD)
++			{
++                m_curState=State.VIEWING_EVENT;
++                ReadRewardsTrack();
++            }
++
+ 		}
+ 
+ 		private void ReadRewardsTrackLevel()
+@@ -845,7 +879,6 @@ m_achievementChooseOne=false;
+             //return RewardTrackManager.Get().GetCurrentRewardTrack(Assets.Achievement.RewardTrackType.GLOBAL);
+ 		}
+ 
+-		#endregion
+ 
+         #region achievements
+         private void ReadAchievementCats() {

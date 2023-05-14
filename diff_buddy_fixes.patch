@@ -1,0 +1,75 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs b/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
+index e6e3d25..5f3b481 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleCardUtils.cs
+@@ -143,11 +143,11 @@ namespace Accessibility
+             return ret;
+         }
+ 
+-        public static List<string> GetHeroBuddyCardLinesForHeroCard(string heroCardId)
++        public static List<string> GetHeroBuddyCardLinesForHeroCard(Entity heroCard)
+         {
+             var ret = new List<string>();
+ 
+-            var heroBuddyCardId = GameUtils.GetHeroBuddyCardIdFromHero(heroCardId);
++            var heroBuddyCardId = heroCard.GetHeroBuddyCardId();
+             EntityDef entityDef = DefLoader.Get().GetEntityDef(heroBuddyCardId);
+             var buddyName = entityDef.GetName();
+ 
+@@ -157,6 +157,8 @@ namespace Accessibility
+ 
+             AddLineIfExists(entityDef.GetCardTextInHand(), ret);
+ 
++            AddLineIfExists(entityDef.GetRaceText(), ret);
++
+             ret.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_CARD_TIER, entityDef.GetTag(GAME_TAG.TECH_LEVEL)));
+ 
+             return ret;
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
+index a601559..a8d4661 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsCard.cs
+@@ -59,7 +59,7 @@ namespace Accessibility
+ 			var progress = heroCard.GetTag(GAME_TAG.BACON_HERO_BUDDY_PROGRESS);
+             ret.Add(LocalizationUtils.Format(LocalizationKey.BATTLEGROUNDS_GAMEPLAY_READ_PLAYER_BUDDY_METER, progress));
+ 
+-            ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(heroCard.GetCardId()));
++            ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(heroCard));
+ 
+             return ret;
+ 		}
+@@ -154,7 +154,7 @@ namespace Accessibility
+ 			{
+                 var cardId = entity.GetCardId();
+                 lines.AddRange(AccessibleCardUtils.GetHeroPowerCardLinesForHeroCard(cardId));
+-                lines.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(cardId));
++                lines.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(entity));
+ 			}
+             catch (Exception e)
+ 			{
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
+index 5b00128..a9558c7 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsChooseHeroCard.cs
+@@ -30,7 +30,7 @@ namespace Accessibility
+ 			{
+                 var cardId = entity.GetCardId();
+                 ret.AddRange(AccessibleCardUtils.GetHeroPowerCardLinesForHeroCard(cardId));
+-                ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(cardId));
++                ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(entity));
+ 			}
+             catch (Exception e)
+ 			{
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+index 944bb4b..77e7858 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsHeroBuddyCard.cs
+@@ -17,7 +17,7 @@ namespace Accessibility
+ 
+             var heroCard = GameState.Get().GetFriendlySidePlayer().GetHero();
+ 
+-            ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(heroCard.GetCardId()));
++            ret.AddRange(AccessibleCardUtils.GetHeroBuddyCardLinesForHeroCard(heroCard));
+ 
+             ret.Insert(1, AccessibleCardUtils.GetCost(m_card));
+ 

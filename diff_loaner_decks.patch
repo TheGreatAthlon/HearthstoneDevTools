@@ -1,0 +1,79 @@
+diff --git a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
+index 2ee8165..9d84d65 100644
+--- a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
++++ b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionDeckBoxVisual.cs
+@@ -57,7 +57,9 @@ namespace Accessibility
+             {
+                 // In some scenarios such as the first time we open practice mode right after the tutorial ends the hero level isn't populated
+             }
+-
++            if (m_deck.m_isLoanerDeck && FreeDeckMgr.Get().Status == FreeDeckMgr.FreeDeckStatus.TRIAL_PERIOD) {
++                ret.Insert(1, LocalizationUtils.Format(LocalizationKey.SCREEN_DECK_PICKER_TRAY_DISPLAY_LOANER_DECK, FreeDeckMgr.Get().TrialPeriodEndTime));
++            }
+             return ret;
+         }
+ 
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index acad27b..b6567f4 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -792,6 +792,9 @@ public class LocalizationKey
+     public static LocalizationKey SCREEN_PACK_OPENING_OPEN_CARDS_HELP = CreateKey("ACCESSIBILITY_SCREEN_PACK_OPENING_OPEN_CARDS_HELP");
+     public static LocalizationKey SCREEN_PACK_OPENING_NO_CARD_PACKS = CreateKey("ACCESSIBILITY_SCREEN_PACK_OPENING_NO_CARD_PACKS");
+ 
++    // Deck picker
++    public static LocalizationKey SCREEN_DECK_PICKER_TRAY_DISPLAY_LOANER_DECK = CreateKey("ACCESSIBILITY_SCREEN_DECK_PICKER_TRAY_DISPLAY_LOANER_DECK");
++
+     // Hearthstone/Play screen
+     public static LocalizationKey SCREEN_HEARTHSTONE_RANKED_READ_RANK = CreateKey("ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK");
+     public static LocalizationKey SCREEN_HEARTHSTONE_RANKED_READ_RANK_CURRENT_STARS = CreateKey("ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK_CURRENT_STARS");
+diff --git a/Assembly-CSharp/Accessibility/Ranked/AccessibleRankedUtils.cs b/Assembly-CSharp/Accessibility/Ranked/AccessibleRankedUtils.cs
+index 6527575..fdbdcc8 100644
+--- a/Assembly-CSharp/Accessibility/Ranked/AccessibleRankedUtils.cs
++++ b/Assembly-CSharp/Accessibility/Ranked/AccessibleRankedUtils.cs
+@@ -67,7 +67,7 @@ namespace Accessibility
+ 
+ 		public static bool PlayerHasStandardDecks()
+ 		{
+-			return CollectionManager.Get().GetNumberOfStandardDecks() > 0;
++			return CollectionManager.Get().GetNumberOfStandardDecks() > 0 || PlayerHasLoanerDecks();
+ 		}
+ 
+ 		public static bool PlayerHasCasualDecks()
+@@ -79,7 +79,13 @@ namespace Accessibility
+ 
+ 			var numEligibleDecks = numStandardDecks + numWildDecks + numClassicDecks;
+ 
+-			return numEligibleDecks > 0;
++			return numEligibleDecks > 0 || PlayerHasLoanerDecks();
++		}
++
++		public static bool PlayerHasLoanerDecks()
++		{
++			var freeDeckMgr = FreeDeckMgr.Get();
++			return freeDeckMgr.Status == FreeDeckMgr.FreeDeckStatus.TRIAL_PERIOD && freeDeckMgr.GetLoanerDecksCount() > 0;
+ 		}
+ 
+ 		public static bool PlayerCanPlayWild()
+diff --git a/Assembly-CSharp/DeckPickerTrayDisplay.cs b/Assembly-CSharp/DeckPickerTrayDisplay.cs
+index 7a5b46d..91e38df 100644
+--- a/Assembly-CSharp/DeckPickerTrayDisplay.cs
++++ b/Assembly-CSharp/DeckPickerTrayDisplay.cs
+@@ -4275,7 +4275,7 @@ public class DeckPickerTrayDisplay : AbsDeckPickerTrayDisplay, AccessibleScreen
+                 var deck = pageDecks[j];
+                 var deckId = deck.GetDeckID();
+ 
+-                if (deckId == -1L)
++                if (deckId == -1L && !deck.m_isLoanerDeck)
+                 {
+                     break;
+                 }
+@@ -4391,7 +4391,7 @@ public class DeckPickerTrayDisplay : AbsDeckPickerTrayDisplay, AccessibleScreen
+                 var deck = pageDecks[j];
+                 var deckId = deck.GetDeckID();
+ 
+-                if (deckId == -1L)
++                if (deckId == -1L && !deck.m_isLoanerDeck)
+                 {
+                     break;
+                 }

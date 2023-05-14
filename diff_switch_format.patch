@@ -1,0 +1,94 @@
+diff --git a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
+index 74936b3..b5b5ecd 100644
+--- a/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
++++ b/Assembly-CSharp/Accessibility/CollectionManager/AccessibleCollectionManager.cs
+@@ -1081,6 +1081,7 @@ namespace Accessibility
+                 m_editDeckMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION), EditDeckSeeDeck);
+                 m_editDeckMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_RENAME_DECK_OPTION), EditDeckRenameDeck);
+                 m_editDeckMenu.AddOption(LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_COPY_DECK_OPTION), EditDeckCopyDeck);
++                m_editDeckMenu.AddOption(decksContent.m_deckOptionsMenu.m_convertText.Text, decksContent.m_deckOptionsMenu.m_switchFormatButton.TriggerRelease);
+                 m_editDeckMenu.AddOption(CollectionDeckTray.Get().m_doneButton.GetText(), EditDeckDone);
+             }
+             else
+@@ -1099,6 +1100,17 @@ namespace Accessibility
+             CollectionDeckTray.Get().m_cardsContent.RegisterCardCountUpdated(OnCardCountUpdated);
+         }
+ 
++        internal void OnDeckFormatChanged(CollectionDeck deck)
++        {
++            if (CollectionManager.Get() .GetEditedDeck() != deck)
++            {
++                return;
++            }
++
++            AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.SCREEN_COLLECTION_MANAGER_EDIT_DECK_FORMAT_CHANGED));
++            SetupEditDeckMenu();
++        }
++
+         private void OnCardCountUpdated(int cardCount)
+         {
+             if (m_isTransitioning)
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index 5947dcf..a4414e5 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -776,6 +776,7 @@ public static LocalizationKey OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST = CreateKey("A
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_RENAME_DECK_OPTION = CreateKey("GLUE_COLLECTION_DECK_RENAME");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_COPY_DECK_OPTION = CreateKey("GLUE_COLLECTION_DECK_COPY_TOOLTIP_HEADLINE");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK");
++    public static LocalizationKey SCREEN_COLLECTION_MANAGER_EDIT_DECK_FORMAT_CHANGED = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_FORMAT_CHANGED");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_COLLECTION_PAGE_NUM = CreateKey("GLUE_COLLECTION_PAGE_NUM");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_READ_COLLECTION_HELP = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COLLECTION_HELP");
+     public static LocalizationKey SCREEN_COLLECTION_MANAGER_READ_COLLECTION_FILTERS_HELP = CreateKey("ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COLLECTION_FILTERS_HELP");
+diff --git a/Assembly-CSharp/DeckOptionsMenu.cs b/Assembly-CSharp/DeckOptionsMenu.cs
+index 2093b20..8f4db50 100644
+--- a/Assembly-CSharp/DeckOptionsMenu.cs
++++ b/Assembly-CSharp/DeckOptionsMenu.cs
+@@ -19,7 +19,7 @@ public class DeckOptionsMenu : MonoBehaviour
+ 
+ 	[SerializeField]
+ 	[Header("Buttons")]
+-	private UberText m_convertText;
++	internal UberText m_convertText;
+ 
+ 	[SerializeField]
+ 	private PegUIElement m_renameButton;
+@@ -28,7 +28,7 @@ public class DeckOptionsMenu : MonoBehaviour
+ 	private PegUIElement m_deleteButton;
+ 
+ 	[SerializeField]
+-	private PegUIElement m_switchFormatButton;
++	internal PegUIElement m_switchFormatButton;
+ 
+ 	[SerializeField]
+ 	private PegUIElement m_retireButton;
+@@ -163,6 +163,7 @@ public class DeckOptionsMenu : MonoBehaviour
+ 	public void SetDeck(CollectionDeck deck)
+ 	{
+ 		m_deck = deck;
++		SetSwitchFormatText(deck.FormatType);
+ 	}
+ 
+ 	public void SetDeckInfo(CollectionDeckInfo deckInfo)
+@@ -300,6 +301,8 @@ public class DeckOptionsMenu : MonoBehaviour
+ 		{
+ 			SetDeckFormat(GetNextFormatType(m_deck.FormatType));
+ 		}
++		SetSwitchFormatText(m_deck.FormatType);
++		AccessibleCollectionManager.Get().OnDeckFormatChanged(m_deck);
+ 	}
+ 
+ 	private FormatType GetNextFormatType(FormatType formatType)
+diff --git a/Assembly-CSharp/DeckTrayDeckListContent.cs b/Assembly-CSharp/DeckTrayDeckListContent.cs
+index 0825fa1..45e8e64 100644
+--- a/Assembly-CSharp/DeckTrayDeckListContent.cs
++++ b/Assembly-CSharp/DeckTrayDeckListContent.cs
+@@ -69,7 +69,7 @@ public class DeckTrayDeckListContent : DeckTrayReorderableContent
+ 
+ 	protected int m_centeringDeckList = -1;
+ 
+-	protected DeckOptionsMenu m_deckOptionsMenu;
++	internal DeckOptionsMenu m_deckOptionsMenu;
+ 
+ 	protected bool m_initialized;
+ 

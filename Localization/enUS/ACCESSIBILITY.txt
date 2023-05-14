@@ -18,10 +18,17 @@ ACCESSIBILITY_LIST_NO_ITEMS	No items
 ACCESSIBILITY_OPTIONS_MENU_TITLE	Options Menu	
 ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_QUALITY_OPTION	Graphics quality	
 ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_RESOLUTION_OPTION	Graphics resolution	
+ACCESSIBILITY_OPTIONS_MENU_DEBUG_LOGGING_OPTION	Enable debug logging for this run	
+ACCESSIBILITY_OPTIONS_MENU_SPEECH_IN_BACKGROUND_OPTION	Speech in background	
 ACCESSIBILITY_OPTIONS_MENU_ADJUST_VOLUME	Use the left and right arrow keys to adjust the volume	
 ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_LABEL	{0} checkbox	0=checkbox name e.g. {Fullscreen} checkbox
 ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_CHECKED	Checked	
 ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_NOT_CHECKED	Not checked	
+ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED	Auto Attack Speed: {0}	Options menu
+ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_SLOW	Slow	
+ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_MEDIUM	Medium	
+ACCESSIBILITY_OPTIONS_MENU_AUTO_ATTACK_SPEED_FAST	Fast	
+
 ACCESSIBILITY_HUB_MAIN_MENU_TITLE	Main Menu	
 ACCESSIBILITY_HUB_MAIN_MENU_OPTION_GAME_MENU	Press {0} at any time to open the game menu. Try it now!	0=Esc key
 ACCESSIBILITY_HUB_MAIN_MENU_OPTION_SOCIAL_MENU	Press {0} at any time to open the social menu. Try it now!	0=F4 key
@@ -45,6 +52,7 @@ ACCESSIBILITY_GLOBAL_SWITCH_FORMAT	Switch format	Used as a menu option for switc
 ACCESSIBILITY_GLOBAL_CHOOSE_FORMAT	Choose a format	Used as a menu title for choosing standard, wild or classic
 
 ACCESSIBILITY_GLOBAL_KEYWORD_CURSED	Cursed	
+ACCESSIBILITY_GLOBAL_KEYWORD_HAUNTED	haunted	
 
 ACCESSIBILITY_GLOBAL_ACCESSIBILITY_ON	Accessibility on	Read when F8 is pressed and accessibility is turned on
 ACCESSIBILITY_GLOBAL_ACCESSIBILITY_OFF	Accessibility off	Read when F8 is pressed and accessibility is turned off
@@ -227,6 +235,8 @@ ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_BECAME_INVULNERABLE	became invulnerable
 ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_INVULNERABLE	became invulnerable	
 ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_WAS_CURSED	was cursed	
 ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_CURSED	were cursed	
+ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_WAS_HAUNTED	was haunted
+ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_HAUNTED	were haunted
 ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_BECAME_SILENCED	was silenced	
 ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_SILENCED	were silenced	
 ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_BECAME_DORMANT	became dormant	
@@ -377,6 +387,7 @@ ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_DECLINED_INVITE	{0} declined the invite
 ACCESSIBILITY_BATTLEGROUNDS_PARTY_PLAYER_LEFT	{0} left the party.	0 is player name
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_CARD_TIER	Tier {0}	0=card tier
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_CARD_COST	{0} gold	0=card cost
+ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_DARKMOON_TICKET	Ticket	In the tavern view
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_RECRUIT_PHASE_START_DESCRIBE	Tavern tier {0} and {1} gold	0=tavern tier 1=amount of gold when recruit phase starts e.g. Tavern tier 2 and 5 gold
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_COMBAT_PHASE_START_DESCRIBE	You face a tier {0} {1} with {2} health and {3} |4(minion,minions)	0=opponent's tavern tier 1=opponent's Hero 2=opponent's Hero health 3=number of opponent minions e.g. You face a tier 3 Chenvaala with 30 Health and 5 minions
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_COMBAT_PHASE_START_DESCRIBE_INCLUDE_ARMOR	You face a tier {0} {1} with {2} health, {4} armor and {3} |4(minion,minions)	0=opponent's tavern tier 1=opponent's Hero 2=opponent's Hero health 3=number of opponent minions 4=opponent's armor e.g. You face a tier 3 Chenvaala with 30 Health, 2 armor and 5 minions
@@ -599,8 +610,13 @@ ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_RECIPE_CHOOSE_HELP	Press {0} to create a
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CUSTOM_DECK_CHOOSE_HELP	Press {0} to create a custom deck or {1} to choose a recipe	0=Enter key 1=Backspace key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_ADD_CARDS_OPTION	Add cards	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION	See deck	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_SIDEBOARD_OPTION	See sideboard	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_BACK_TO_DECK_OPTION	Back to deck	Used when editing a sideboard
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_MENU_SEE_DECK_OPTION_EMPTY_DECK	Your deck is empty	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_CARDS_IN_DECK	{0} of {1} cards in deck	0=number of cards in deck 1=max number of cards in deck e.g. {10} of {30} cards in deck
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_INVALID_CARD	Invalid	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_SIDEBOARD	Sideboard	Used in place of the deck name when editing a sideboard
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_FORMAT_CHANGED	Format changed	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COLLECTION_HELP	Use the arrow keys to read your cards. Use {0} to jump between classes.	0=Tab key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COLLECTION_FILTERS_HELP	Use the number keys to filter your cards by mana. Use {0} to search your collection.	0=ctrl+f
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COINS_HELP	Use the arrow keys and {0} to read all available coins.	0=Enter key
@@ -632,6 +648,8 @@ ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_DISENCHANT_DONE	Disenchanted
 
 ACCESSIBILITY_SCREEN_PACK_OPENING_OPEN_CARDS_HELP	Use the arrow keys and {0} to reveal your cards	0=Enter key
 ACCESSIBILITY_SCREEN_PACK_OPENING_NO_CARD_PACKS	You don't have any card packs	
+
+ACCESSIBILITY_SCREEN_DECK_PICKER_TRAY_DISPLAY_LOANER_DECK	On loan until {0}	
 
 ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK	Read current rank	
 ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK_CURRENT_STARS	{0} out of {1} |4(star,stars)	0=current stars 1=star slots e.g. {1} out of {3} stars
@@ -776,6 +794,8 @@ ACCESSIBILITY_IN_GAME_TUTORIAL_MULLIGAN_FIRST_TIME_C	Use the arrow keys or {0} t
 ACCESSIBILITY_IN_GAME_TUTORIAL_MULLIGAN_FIRST_TIME_D	If you see a card you don't like, press {0} to mark it for replacement	0=Spacebar key
 ACCESSIBILITY_IN_GAME_TUTORIAL_MULLIGAN_FIRST_TIME_E	Once you've marked all cards you'd like to replace, press {0} to draw new ones and start the game	0=Enter key
 
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_ETC_TUTORIAL	To edit the sideboard, switch to the deck editing mode, focus on this card and press the spacebar.	
+
 ACCESSIBILITY_BATTLEGROUNDS_TUTORIAL_DRAGBUY_TUTORIAL_OVERRIDE	Use {0} and {1} to buy minions.	0=g key 1=Enter key
 ACCESSIBILITY_BATTLEGROUNDS_TUTORIAL_DRAGBUY_BODY_TUTORIAL_OVERRIDE	Use {0} and {1} to buy minions for 3 Gold. Build up an army to take down your enemies!	0=g key 1=Enter key
 ACCESSIBILITY_BATTLEGROUNDS_TUTORIAL_DRAGSELL_TUTORIAL_OVERRIDE	Use {0} and {1} to sell minions.	0=b key 1=Enter key
@@ -806,3 +826,6 @@ ACCESSIBILITY_ACHIEVEMENT_VIEW_EARN	Earn {0} Achievement Points	0 is number of p
 ACCESSIBILITY_ACHIEVEMENT_COULD_NOT_CLAIM	Could not claim achievement.
 ACCESSIBILITY_ACHIEVEMENT_LIST_HELP	Use the left and right arrows to browse the achievement list and up and down arrows to reach the currently selected achievement's information. Press {0} to attempt to claim a claimable achievement. Press {1} to return to the previous menu. Press {2} to switch between viewing all achievements and viewing incomplete ones.
 ACCESSIBILITY_ACHIEVEMENT_SHOWING_INCOMPLETE	{0} of {1} achievements Incomplete
+ACCESSIBILITY_CHOOSE_DECK_COLLECTION_AVAILABLE	Press c to access your collection	Available in some choose deck menus
+ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_PREVIEW	Level {0}: {1} xp needed	0 is the level number
+ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_DESC	, Rewards: {0}	0 is text description of rewards. This is appended to the previous item.

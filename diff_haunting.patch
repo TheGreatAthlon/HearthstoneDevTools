@@ -1,0 +1,62 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleCard.cs b/Assembly-CSharp/Accessibility/AccessibleCard.cs
+index be0ab65..830919a 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleCard.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleCard.cs
+@@ -41,7 +41,6 @@ namespace Accessibility
+             var name = GetName();
+ 
+             ret.Add(name);
+-
+             AddTrailingHeader(ret);
+ 
+             return ret;
+@@ -53,7 +52,9 @@ namespace Accessibility
+ 			{
+                 ret.Add(LocalizationUtils.Get(LocalizationKey.GLOBAL_CURSED));
+ 			}
+-
++            if(m_card.GetEntity().HasTag(GAME_TAG.VALEERASHADOW)) {
++                ret.Add(LocalizationUtils.Get(LocalizationKey.GLOBAL_HAUNTED));
++            }
+             if (AccessibleCardUtils.IsReady(m_card))
+ 			{
+                 ret.Add(LocalizationUtils.Get(LocalizationKey.GLOBAL_READY));
+diff --git a/Assembly-CSharp/Accessibility/AccessibleInGameState.cs b/Assembly-CSharp/Accessibility/AccessibleInGameState.cs
+index 825b900..796d46f 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleInGameState.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleInGameState.cs
+@@ -390,7 +390,11 @@ namespace Accessibility
+                     sDescriptions.Add(LocalizationUtils.Get(LocalizationKey.GAMEPLAY_DIFF_ENTITY_WAS_CURSED));
+                     pDescriptions.Add(LocalizationUtils.Get(LocalizationKey.GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_CURSED));
+ 				}
+-
++                if (!m_before.HasTag(GAME_TAG.VALEERASHADOW) && m_after.HasTag(GAME_TAG.VALEERASHADOW))
++                {
++                    sDescriptions.Add(LocalizationUtils.Get(LocalizationKey.GAMEPLAY_DIFF_ENTITY_WAS_HAUNTED));
++                    pDescriptions.Add(LocalizationUtils.Get(LocalizationKey.GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_HAUNTED));
++                }
+                 if (!m_before.IsSilenced() && m_after.IsSilenced())
+                 {
+                     sDescriptions.Add(LocalizationUtils.Get(LocalizationKey.GAMEPLAY_DIFF_ENTITY_BECAME_SILENCED));
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index ec0c158..3bc9f64 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -140,6 +140,7 @@ public class LocalizationKey
+     public static LocalizationKey GLOBAL_SILENCE = CreateKey("GLOBAL_KEYWORD_SILENCE");
+     public static LocalizationKey GLOBAL_CURSED = CreateKey("ACCESSIBILITY_GLOBAL_KEYWORD_CURSED");
+     public static LocalizationKey GLOBAL_READY = CreateKey("GAMEPLAY_LETTUCE_READY_BUTTON");
++        public static LocalizationKey GLOBAL_HAUNTED = CreateKey("ACCESSIBILITY_GLOBAL_KEYWORD_HAUNTED");
+ 
+     // Gameplay
+     public static LocalizationKey GAMEPLAY_YOUR_TURN = CreateKey("GAMEPLAY_YOUR_TURN");
+@@ -292,6 +293,9 @@ public class LocalizationKey
+     public static LocalizationKey GAMEPLAY_DIFF_ENTITY_BECAME_SILENCED = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_BECAME_SILENCED");
+     public static LocalizationKey GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_SILENCED = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_SILENCED");
+     public static LocalizationKey GAMEPLAY_DIFF_ENTITY_BECAME_DORMANT = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_BECAME_DORMANT");
++        public static LocalizationKey GAMEPLAY_DIFF_ENTITY_WAS_HAUNTED = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_WAS_HAUNTED");
++    public static LocalizationKey GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_HAUNTED = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_WERE_HAUNTED");
++
+     public static LocalizationKey GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_DORMANT = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_BECAME_DORMANT");
+     public static LocalizationKey GAMEPLAY_DIFF_ENTITY_NO_LONGER_DORMANT = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_ENTITY_NO_LONGER_DORMANT");
+     public static LocalizationKey GAMEPLAY_DIFF_MULTIPLE_ENTITIES_NO_LONGER_DORMANT = CreateKey("ACCESSIBILITY_GAMEPLAY_DIFF_MULTIPLE_ENTITIES_NO_LONGER_DORMANT");

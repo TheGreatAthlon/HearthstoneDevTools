@@ -1,0 +1,46 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleListOfItems.cs b/Assembly-CSharp/Accessibility/AccessibleListOfItems.cs
+index b24bf4e..2e690f3 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleListOfItems.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleListOfItems.cs
+@@ -31,22 +31,16 @@ internal void SetGoBackAction(Action a) {
+     m_goBackAction=a;
+ }
+ 
+-        internal bool HandleAccessibleInput()
+-        {
+-
++        internal bool HandleAccessibleInput() {
+             if(AccessibleKey.BACK.IsPressed()&&m_goBackAction!=null) {
+-//                AccessibilityMgr.Output(null,"Go back");
+-                m_goBackAction();
++         m_goBackAction();
+             }
+-                        else if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed())
+-            {
++            else if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed()) {
+                 if(TabAction!=null) TabAction();
+             }
+-                        else if (AccessibleKey.READ_PREV_VALID_ITEM.IsPressed())
+-            {
++            else if (AccessibleKey.READ_PREV_VALID_ITEM.IsPressed()) {
+                 if(ShiftTabAction!=null) ShiftTabAction();
+             }
+-
+             if (m_items.Count == 0 && m_noItemsTextOverride != null)
+ 			{
+                 // TODO: Refactor this list to do this properly
+@@ -80,7 +74,13 @@ internal void SetGoBackAction(Action a) {
+             {
+                 return true;
+             }
+-
++            else if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed()) {
++                if(TabAction==null) return ReadNextItem(1, true);
++            }
++            else if (AccessibleKey.READ_PREV_VALID_ITEM.IsPressed()) 
++            {
++                if(ShiftTabAction==null) return ReadNextItem(-1, true);
++            }
+             return false;
+         }
+ 
