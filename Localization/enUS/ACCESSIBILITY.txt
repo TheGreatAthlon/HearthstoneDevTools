@@ -20,6 +20,7 @@ ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_QUALITY_OPTION	Graphics quality
 ACCESSIBILITY_OPTIONS_MENU_GRAPHICS_RESOLUTION_OPTION	Graphics resolution	
 ACCESSIBILITY_OPTIONS_MENU_DEBUG_LOGGING_OPTION	Enable debug logging for this run	
 ACCESSIBILITY_OPTIONS_MENU_SPEECH_IN_BACKGROUND_OPTION	Speech in background	
+ACCESSIBILITY_OPTIONS_MENU_SAVE_BATTLE_LOGS	Automatically Save Battle history Logs to Battle Logs folder
 ACCESSIBILITY_OPTIONS_MENU_ADJUST_VOLUME	Use the left and right arrow keys to adjust the volume	
 ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_LABEL	{0} checkbox	0=checkbox name e.g. {Fullscreen} checkbox
 ACCESSIBILITY_OPTIONS_MENU_CHECKBOX_CHECKED	Checked	
@@ -95,6 +96,7 @@ ACCESSIBILITY_READ_COLLECTION_CARD_NAME_SIGNATURE	{0} - signature edition	0=card
 
 ACCESSIBILITY_GAMEPLAY_OPPONENT_TURN	Opponent's turn	
 ACCESSIBILITY_GAMEPLAY_TURN_ENDED	Turn ended	
+ACCESSIBILITY_GAMEPLAY_CHOICES_HIDDEN	Choices hidden	
 ACCESSIBILITY_GAMEPLAY_CARD_IN_ZONE_TRIGGERED	{0} triggered	0=full card name in zone e.g. {Your second Murloc Raider} triggered
 ACCESSIBILITY_GAMEPLAY_PLAYER_CARD_TRIGGERED	Your {0} triggered	0=card name e.g. Your {Psyfiend} triggered
 ACCESSIBILITY_GAMEPLAY_OPPONENT_CARD_TRIGGERED	Your opponent's {0} triggered	0=card name e.g. Your opponent's {Psyfiend} triggered
@@ -148,6 +150,7 @@ ACCESSIBILITY_GAMEPLAY_QUERY_SUMMON_MINION_AT_THE_LEFT	Summon at the left?
 ACCESSIBILITY_GAMEPLAY_QUERY_SUMMON_MINION_BETWEEN	Summon between {0} and {1}?	Summon between {Murloc Raider} and {Bloodfen Raptor}?
 ACCESSIBILITY_GAMEPLAY_QUERY_PLAY_CARD	Play card?	
 ACCESSIBILITY_GAMEPLAY_QUERY_TRADE_CARD	Trade card?	
+ACCESSIBILITY_GAMEPLAY_QUERY_FORGE_CARD	Forge card?	
 ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_VALID_PLAYS	You still have valid plays. Are you sure?	
 ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_CAN_ATK	You can still attack. Are you sure?	
 ACCESSIBILITY_GAMEPLAY_QUERY_END_TURN_WHEN_CAN_USE_LOCATION	You can still activate locations. Are you sure?	
@@ -175,6 +178,7 @@ ACCESSIBILITY_GAMEPLAY_SEE_ZONE_PLAYER_WEAPON_EMPTY	You have no equipped weapon
 ACCESSIBILITY_GAMEPLAY_SEE_ZONE_OPPONENT_WEAPON_EMPTY	Your opponent has no equipped weapon	
 ACCESSIBILITY_GAMEPLAY_READ_PLAYER_MANA_CURRENT_AND_TOTAL	You have {0} out of {1} mana	0=current mana 1=total mana
 ACCESSIBILITY_GAMEPLAY_READ_PLAYER_MANA	You have {0} mana	0=current and total mana
+ACCESSIBILITY_GAMEPLAY_READ_OPPONENT_MANA_CURRENT_AND_TOTAL	Your opponent has {0} out of {1} mana	0=current mana 1=total mana
 ACCESSIBILITY_GAMEPLAY_READ_OPPONENT_MANA	Your opponent has {0} mana	0=current and total mana
 ACCESSIBILITY_GAMEPLAY_READ_CORPSES	{0} |4(corpse,corpses)	0=current amount of corpses
 ACCESSIBILITY_GAMEPLAY_READ_CORPSES_EMPTY	no corpses
@@ -182,6 +186,7 @@ ACCESSIBILITY_GAMEPLAY_READ_OPPONENT_HAND	Opponent's hand. {0} |4(card,cards)	0=
 ACCESSIBILITY_GAMEPLAY_READ_PLAYER_DECK	Deck. {0} |4(card,cards)	0=number of cards
 ACCESSIBILITY_GAMEPLAY_READ_OPPONENT_DECK	Opponent's Deck. {0} |4(card,cards)	0=number of cards
 ACCESSIBILITY_GAMEPLAY_NO_VALID_PLAYS	You have no valid plays	
+ACCESSIBILITY_GAMEPLAY_NO_ANOMALIES	There are no anomalies	
 
 ACCESSIBILITY_GAMEPLAY_GAME_OVER_WON	You win	
 ACCESSIBILITY_GAMEPLAY_GAME_OVER_LOST	You lose	
@@ -361,7 +366,8 @@ ACCESSIBILITY_GAMEPLAY_READ_CARD_TOOLTIP_HELP	Press {0} to get a description of 
 ACCESSIBILITY_GAMEPLAY_PLAY_CARD_HELP	Press {0} to play this card	0=Enter key
 ACCESSIBILITY_GAMEPLAY_TRADE_CARD_HELP	Press {0} to trade this card	0=t key
 ACCESSIBILITY_GAMEPLAY_SUMMON_MINION_HELP	Press {0} to summon this minion	0=Enter key
-ACCESSIBILITY_GAMEPLAY_CHOICE_MODE_HELP	Use the arrow keys to go through your options. Press {0} to choose one	0=Enter key
+ACCESSIBILITY_GAMEPLAY_CHOICE_MODE_HELP	Use the arrow keys to go through your options. Press {0} to choose one. Press {1} to inspect the board	0=Enter key 1=tab key
+ACCESSIBILITY_GAMEPLAY_HIDDEN_CHOICE_HELP	Use the zone keys to inspect the state of the game board. Press {0} to return to the choices	0=tab key
 ACCESSIBILITY_GAMEPLAY_CHOOSE_TARGET_HELP	Use {0} or the Zone keys to go through your targets. Press {1} to choose a target or {2} to cancel	0=Tab key 1=Enter key 2=Backspace key
 ACCESSIBILITY_GAMEPLAY_ATTACK_WITH_MINION_HELP	Press {0} to attack with this minion	0=Enter key
 ACCESSIBILITY_GAMEPLAY_ATTACK_WITH_HERO_HELP	Press {0} to attack with your hero	0=Enter key
@@ -405,6 +411,8 @@ ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_UNFREEZE_TAVERN	Unfreeze tavern?
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_REFRESH_TAVERN_FOR_N_GOLD	Refresh tavern for {0} gold?	0=amount e.g. Refresh tavern for 1 gold?
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_UPGRADE_TAVERN_FOR_N_GOLD	Upgrade tavern for {0} gold?	0=amount e.g. Upgrade tavern for 3 gold?
 
+ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_ANOMALY	Anomaly: {0}; {1}	0=Anomaly name 1=Anomaly text e.g. Anomaly: {Grapnel of the Titans}; {The first minion you buy each turn is free.}
+
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_MOVE_MINION_TO_LAST_POSITION	Move to last position?	
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_MOVE_MINION_TO_FIRST_POSITION	Move to first position?	
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_QUERY_MOVE_MINION_BETWEEN	Move between {0} and {1}?	Move between {Murloc Raider} and {Bloodfen Raptor}?
@@ -436,7 +444,7 @@ ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_HERO_BUDDY_HELP	Press {0} to read your
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_NEXT_OPPONENT_STATS_HELP	Press {0} to read your next opponent's stats	0=n key
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_LEADERBOARD_HELP	Press {0} to read the leaderboard	0=l key
 ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_MY_STATS_HELP	Press {0} to read your stats	0=m key
-ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_RACES_IN_GAME_HELP	Press {0} to read the races in this game	0=o key
+ACCESSIBILITY_BATTLEGROUNDS_GAMEPLAY_READ_RACES_IN_GAME_HELP	Press {0} to read the races and anomaly in this game	0=o key
 
 ACCESSIBILITY_UI_POPUP	Popup	
 ACCESSIBILITY_UI_REWARDS_TITLE	Rewards	
@@ -622,14 +630,18 @@ ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COLLECTION_FILTERS_HELP	Use the num
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_COINS_HELP	Use the arrow keys and {0} to read all available coins.	0=Enter key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_CARD_BACKS_HELP	Use the arrow keys and {0} to read all available card backs.	0=Enter key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_HERO_SKINS_HELP	Use the arrow keys and {0} to read all available Hero skins.	0=Enter key
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_READ_BATTLEGROUNDS_HERO_SKINS_HELP	Use the arrow keys and {0} to read the available Hero skins. Press {1} to toggle between showing owned and all skins.	0=Enter key 1=Tab key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_ADD_CARD_HELP	Use {0} to add cards to your deck	0=Enter key
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_REMOVE_CARD_HELP	Use {0} to remove cards from your deck	0=Enter key
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_CRAFT_CARD_HELP	Use {0} to craft or disenchant the cards in your deck	0=Shift+Enter
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_EDIT_DECK_RENAME_DECK_PROMPT	Type in a new name for your deck	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_SEARCH_PROMPT	Type in a search term	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_MANA_FILTER_ON	{0} mana filter on	{0} mana crystal filter e.g. {7+} mana filter on
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_MANA_FILTER_OFF	Mana filter off	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CHANGE_SET	Change set	Used for changing between standard cards, wild cards, united in stormwind, etc.
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_FAVORITE_HERO_SKIN_SET	Favorite Hero Skin set	Spoken after setting a new favorite Hero Skin
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_FAVORITE_BATTLEGROUNDS_GUIDE_SKIN_SET	Favorite Bartender set	Spoken after setting a new favorite bartender in Battlegrounds
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_FAVORITE_BATTLEGROUNDS_FINISHER_SET	Favorite Strike set	Spoken after setting a new favorite strike in Battlegrounds
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_FAVORITE_CARD_BACK_SET	Favorite Card Back set	Spoken after setting a new favorite Card Back
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_FAVORITE_COIN_SET	Favorite Coin set	Spoken after setting a new favorite Coin
 
@@ -637,7 +649,7 @@ ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_CRAFT_CARDS	Craft cards
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_READ_DUST	Read Arcane Dust	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_MASS_DISENCHANT_FOR_N_DUST	Disenchant {0} extra |4(card,cards) for {1} Arcane Dust	0=number of extra cards 1=amount of dust e.g. Disenchant 5 extra cards for {100} Arcane Dust
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_READ_CARD	Read card	
-ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_READ_RELATED_CARD	Read related card	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_READ_RELATED_CARDS	Read related cards	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_READ_FLAVOR	Read flavor	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_CRAFT_CARD_FOR_N_DUST	Craft for {0} Arcane Dust	0=amount of dust e.g. Craft for {100} Arcane Dust
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_DISENCHANT_CARD_FOR_N_DUST	Disenchant for {0} Arcane Dust	0=amount of dust e.g. Disenchant to gain {100} Arcane Dust
@@ -645,6 +657,12 @@ ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_CRAFT_CARD_ERROR_NOT_ENOUGH_DUS
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_CRAFT_CARD_ERROR_CARD_LIMIT_REACHED	You cannot craft any more copies of this card	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_CRAFT_CARD_DONE	Card crafted	
 ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_CRAFTING_DISENCHANT_DONE	Disenchanted	
+
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_BATTLEGROUNDS_BROWSE_HERO_SKINS	Browse hero skins	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_BATTLEGROUNDS_BROWSE_GUIDE_SKINS	Browse bartenders	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_BATTLEGROUNDS_BROWSE_FINISHERS	Browse strikes	
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_BATTLEGROUNDS_HERO_SKIN_FILTER_MODE_OWNED	Owned hero skins:	Spoken when the battlegrounds collection is filtered to show only owned hero skins
+ACCESSIBILITY_SCREEN_COLLECTION_MANAGER_BATTLEGROUNDS_HERO_SKIN_FILTER_MODE_ALL	All hero skins:	Spoken when the battlegrounds collection is filtered to show all hero skins
 
 ACCESSIBILITY_SCREEN_PACK_OPENING_OPEN_CARDS_HELP	Use the arrow keys and {0} to reveal your cards	0=Enter key
 ACCESSIBILITY_SCREEN_PACK_OPENING_NO_CARD_PACKS	You don't have any card packs	
@@ -655,8 +673,15 @@ ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK	Read current rank
 ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK_CURRENT_STARS	{0} out of {1} |4(star,stars)	0=current stars 1=star slots e.g. {1} out of {3} stars
 ACCESSIBILITY_SCREEN_HEARTHSTONE_RANKED_READ_RANK_CURRENT_STAR_BONUS	{0} star bonus	0=current star bonus e.g. {2} star bonus
 
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_SEE_PARTY	See party	
 ACCESSIBILITY_SCREEN_BATTLEGROUNDS_READ_STATS	Read stats	
 ACCESSIBILITY_SCREEN_BATTLEGROUNDS_OPTIONS_NARRATE_ATTACKS	Narrate attacks during combat phase	
+
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_PARTY_MEMBER_WAITING	invited	
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_PARTY_MEMBER_READY	ready	
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_PARTY_MEMBER_LEADER	leader	
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_PARTY_MEMBER_NOT_READY	not ready	
+ACCESSIBILITY_SCREEN_BATTLEGROUNDS_PARTY_MEMBER_SPECTATE	playing	
 
 ACCESSIBILITY_TOAST_QUEST_PROGRESS_TOAST_TITLE	Quest progress toast	
 ACCESSIBILITY_TOAST_QUEST_PROGRESS_TOAST_PROGRESS	Current progress is {0} out of {1}	0=current progress 1=total
@@ -665,18 +690,6 @@ ACCESSIBILITY_TOAST_QUEST_TOAST_TITLE	You finished a quest
 
 ACCESSIBILITY_TUTORIAL_LOADING_TUTORIAL	Loading tutorial	
 ACCESSIBILITY_TUTORIAL_WELCOME_BACK	Welcome back to the tutorial	
-ACCESSIBILITY_TUTORIAL_DEFEATED_HOGGER	You've defeated Hogger	
-ACCESSIBILITY_TUTORIAL_DEFEATED_MILLHOUSE	You've defeated Millhouse Manastorm	
-ACCESSIBILITY_TUTORIAL_DEFEATED_CHO	You've defeated Lorewalker Cho	
-ACCESSIBILITY_TUTORIAL_DEFEATED_MUKLA	You've defeated King Mukla	
-ACCESSIBILITY_TUTORIAL_DEFEATED_NESINGWARY	You've defeated Hemet Nesingwary	
-ACCESSIBILITY_TUTORIAL_DEFEATED_ILLIDAN	You've defeated Illidan Stormrage	
-ACCESSIBILITY_TUTORIAL_NEXT_HOGGER	Your next opponent is Hogger	
-ACCESSIBILITY_TUTORIAL_NEXT_MILLHOUSE	Your next opponent is Millhouse Manastorm	
-ACCESSIBILITY_TUTORIAL_NEXT_CHO	Your next opponent is Lorewalker Cho	
-ACCESSIBILITY_TUTORIAL_NEXT_MUKLA	Your next opponent is King Mukla	
-ACCESSIBILITY_TUTORIAL_NEXT_NESINGWARY	Your next opponent is Hemet Nesingwary	
-ACCESSIBILITY_TUTORIAL_NEXT_ILLIDAN	Your next and final opponent is Illidan Stormrage	
 
 ACCESSIBILITY_TUTORIAL_NARRATOR_INTRO	I'll be teaching you how to play through a set of six tutorial games	
 ACCESSIBILITY_TUTORIAL_NARRATOR_HELP_KEYS	If you ever feel lost, press {0}. Even after the tutorial or when navigating menus, you can always use {0} whenever you need help	0=F1 key
@@ -829,3 +842,49 @@ ACCESSIBILITY_ACHIEVEMENT_SHOWING_INCOMPLETE	{0} of {1} achievements Incomplete
 ACCESSIBILITY_CHOOSE_DECK_COLLECTION_AVAILABLE	Press c to access your collection	Available in some choose deck menus
 ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_PREVIEW	Level {0}: {1} xp needed	0 is the level number
 ACCESSIBILITY_JOURNAL_EVENT_REWARD_TRACK_DESC	, Rewards: {0}	0 is text description of rewards. This is appended to the previous item.
+
+ACCESSIBILITY_DUELS_READ_STATS	Read stats	Read your casual, heroic duels ratings, maximum wins and season ending time info
+ACCESSIBILITY_DUELS_CHOOSE_TYPE	Choose duels' type	Choosing the type of duels (casual/heroic)
+ACCESSIBILITY_DUELS_LOSSES_COUNT	Losses	Losses count in current duels run
+ACCESSIBILITY_DUELS_CHOOSE_HERO_POWER_HELP	Use arrow keys to read hero powers, {0} to select.	{0} enter key
+ACCESSIBILITY_DUELS_CHOOSE_STARTER_TREASURE_HELP	Use arrow keys to read starter treasures, {0} to select.	{0} enter key
+ACCESSIBILITY_DUELS_CHOOSE_TREASURE_REWARD_HELP	Use arrow keys to read treasures, {0} to choose a treasure and {1} to view your deck.	{0} is enter, {1} is D key
+ACCESSIBILITY_DUELS_CHOOSE_LOOT_HELP	Use {0} and {1} to move between loot crates, arrow keys to read cards in a crate, {2} to choose a crate and {3} to view your deck.	{0} Tab {1} Shift+Tab {2} Enter {3} D key
+ACCESSIBILITY_DUELS_HEROIC_RUN_ENDED	Your duels run has ended. Press {0} to see your rewards.	{0}=Enter key
+
+ACCESSIBILITY_GAMEPLAY_TRY_AGAIN	Try Again	
+
+ACCESSIBILITY_NEW_TUTORIAL_NARRATOR_INTRO	I'll be teaching you how to play through a set of three tutorial games	
+
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_START	Your first opponent is a hunter named Rexxar. You will be playing as the powerful mage Jaina Proudmoore	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_2_2	Ok, so... This card is a minion named Mana Wyrm	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_2_2D	This one has 1 attack and 2 health	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_3_0	Your opponent has summoned a minion of his own!	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_3_2	Press {0} to look at your opponent's minions	0=g
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_3_4	Now let's look at your minions. Press {0} to do so	0=b
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_3_5	When there is more than one minion, you can use the left and right arrow keys to move between them	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_0	You've got another card! Can you find out what it does?	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_1	This spell is perfect for dealing with Huffer! Press {0} to play it	0=Enter key
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_2	Select the enemy minion and press {0} to target it	0=Enter key
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_2_HELP	Press {0} to select the enemy minion and {1} to target it	0=G 1=Enter key
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_3	Now, let's learn how to check your health	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_5	If your Hero runs out of health, you lose	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_9	Your mana wyrm is now ready to attack. Select it and press {0}.	0=Enter key
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_10	Can you attack your opponent's hero?	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_10_HELP	Press {0} and {1} to attack your opponent's hero	0=F 1=Enter
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_4_11	Remember how to end your turn?	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_6_3	You can either summon the minion you just got, or use the one you already have on the battlefield to launch an attack	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_6_9	You're now looking at your second option, which would be to attack with the minion you have on the battlefield	
+ACCESSIBILITY_NEW_TUTORIAL_REXXAR_7_0	Minions with the charge keyword can attack on the turn they are played!	
+
+ACCESSIBILITY_NEW_TUTORIAL_GARROSH_TAUNT_HELP	This bloodhoof brave your opponent just summoned has an ability named Taunt	
+
+ACCESSIBILITY_NEW_TUTORIAL_LICH_KING_WEAPON_EQUIPPED_HELP_E	Your opponent equipped Frostmourne, a weapon with 3 attack and 5 durability	
+ACCESSIBILITY_NEW_TUTORIAL_LICH_KING_WEAPON_EQUIPPED_HELP_F	This means your opponent's Hero will have 3 attack during his turn, and will be able to attack any of your characters	
+
+ACCESSIBILITY_NEW_TUTORIAL_DEFEATED_REXXAR	You've defeated Rexxar	
+ACCESSIBILITY_NEW_TUTORIAL_DEFEATED_GARROSH	You've defeated Garrosh Hellscream	
+ACCESSIBILITY_NEW_TUTORIAL_DEFEATED_LICH_KING	You've defeated the Lich King!	
+ACCESSIBILITY_NEW_TUTORIAL_NEXT_REXXAR	Your next opponent is Rexxar	
+ACCESSIBILITY_NEW_TUTORIAL_NEXT_GARROSH	Your next opponent is Garrosh Hellscream	
+ACCESSIBILITY_NEW_TUTORIAL_NEXT_LICH_KING	Your next and final opponent is the Lich King	

@@ -32,24 +32,28 @@ namespace CommonUtils
 						CreateNoWindow = true
 					}
 				};
+				proc.OutputDataReceived += (sender, e) =>
+				{
+					if (!string.IsNullOrWhiteSpace(e.Data))
+					{
+						stdout.Add(e.Data);
+						Console.WriteLine($"[STDOUT]: {e.Data}");
+					}
+				};
+				proc.ErrorDataReceived += (sender, e) =>
+				{
+					if (!string.IsNullOrWhiteSpace(e.Data))
+					{
+						Console.WriteLine($"[STDERR]: {e.Data}");
+					}
+				};
 
 				Console.WriteLine($"WorkDir: {workDir}");
 				Console.WriteLine($"> {filename} {args}");
 
 				proc.Start();
-				while (!proc.StandardOutput.EndOfStream)
-				{
-					string line = proc.StandardOutput.ReadLine();
-					stdout.Add(line);
-					Console.WriteLine($"[STDOUT]: {line}");
-				}
-
-				while (!proc.StandardError.EndOfStream)
-				{
-					string line = proc.StandardError.ReadLine();
-					Console.WriteLine($"[STDERR] {line}");
-				}
-
+				proc.BeginOutputReadLine();
+				proc.BeginErrorReadLine();
 				proc.WaitForExit();
 
 				return proc.ExitCode;

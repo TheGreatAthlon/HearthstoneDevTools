@@ -1,0 +1,226 @@
+diff --git a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+index 50bcd15..06bb2be 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleGameplay.cs
+@@ -25,6 +25,7 @@ namespace Accessibility
+             SUB_OPTION_MODE,
+             TARGET_MODE,
+             CHOICE_MODE,
++            CHOICE_MODE_CHOICES_HIDDEN,
+             SUMMONING_MINION,
+             PLAYING_CARD,
+             TRADING_CARD,
+@@ -516,6 +517,16 @@ namespace Accessibility
+                     bool canHandleChoiceMode=HandleChoiceMode();
+                     if(!canHandleChoiceMode) HandleTargetMode();
+                     return;
++                    case AccessibleGameState.CHOICE_MODE_CHOICES_HIDDEN:
++                    HandleCheckStatusKeys();
++                    HandleZoneSelection();
++                    HandleZoneInput();
++                    HandleCardReadingInput();
++                    if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed())
++                    {
++                        ChoiceCardMgr.Get().GetToggleButton().TriggerRelease();
++                    }
++                    return;
+                 case AccessibleGameState.TARGET_MODE:
+                     HandleCheckStatusKeys();
+                     HandleTargetMode();
+@@ -1118,8 +1129,7 @@ namespace Accessibility
+ 
+         protected bool HandleChoiceMode()
+         {
+-            bool isTargetChoice = GameState.Get().GetFriendlyEntityChoices()?.ChoiceType == CHOICE_TYPE.TARGET;
+-            if (isTargetChoice || m_accessibleChoiceCards == null || !m_accessibleChoiceCards.IsReading())
++            if (IsTargetChoice() || m_accessibleChoiceCards == null || !m_accessibleChoiceCards.IsReading())
+             {
+                 return false; // yield
+             }
+@@ -1137,6 +1147,10 @@ namespace Accessibility
+                 AccessibleInputMgr.MoveMouseTo(m_cardBeingRead.GetCard());
+                 AccessibleInputMgr.ClickLeftMouseButton();
+             }
++            else if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed())
++            {
++                ChoiceCardMgr.Get().GetToggleButton().TriggerRelease();
++            }
+             else
+             {
+                 m_accessibleChoiceCards.HandleAccessibleInput();
+@@ -1144,6 +1158,17 @@ namespace Accessibility
+             return true;
+         }
+ 
++        protected bool IsTargetChoice()
++        {
++            return GameState.Get().GetFriendlyEntityChoices()?.ChoiceType == CHOICE_TYPE.TARGET;
++        }
++
++        public void OnChoicesHidden()
++        {
++            AccessibilityMgr.Output(this, LocalizationUtils.Get(LocalizationKey.GAMEPLAY_CHOICES_HIDDEN));
++            StopReadingCard();
++        }
++
+         protected void HandleTargetMode()
+         {
+             //if (m_prevState != AccessibleGameState.TARGET_MODE) // Was broken due to play
+@@ -1256,7 +1281,14 @@ namespace Accessibility
+             }
+             else if (GameState.Get().IsInChoiceMode())
+             {
+-                m_curState = AccessibleGameState.CHOICE_MODE;
++                if (IsTargetChoice() || ChoiceCardMgr.Get().IsShowingFriendlyCards())
++                {
++                    m_curState = AccessibleGameState.CHOICE_MODE;
++                }
++                else
++                {
++                    m_curState = AccessibleGameState.CHOICE_MODE_CHOICES_HIDDEN;
++                }
+             }
+             else if (GameState.Get().IsInTargetMode()||m_curResponseMode==GameState.ResponseMode.OPTION_TARGET)
+             {
+@@ -2296,6 +2328,8 @@ namespace Accessibility
+                     return GetTargetModeHelp();
+                 case AccessibleGameState.CHOICE_MODE:
+                     return GetChoiceModeHelp();
++                    case AccessibleGameState.CHOICE_MODE_CHOICES_HIDDEN:
++                    return GetHiddenChoiceHelp();
+                 case AccessibleGameState.SUMMONING_MINION:
+                     return GetSummoningMinionHelp();
+                 case AccessibleGameState.PLAYING_CARD:
+@@ -2356,6 +2390,11 @@ namespace Accessibility
+             return GetOrNarrateHelpSpeech(AccessibleSpeech.GAMEPLAY_CHOICE_MODE_HELP);
+         }
+ 
++        private string GetHiddenChoiceHelp()
++        {
++            return LocalizationUtils.Format(LocalizationKey.GAMEPLAY_HIDDEN_CHOICE_HELP, AccessibleKey.READ_NEXT_VALID_ITEM);
++        }
++
+         private string GetTargetModeHelp()
+         {
+             return GetOrNarrateHelpSpeech(AccessibleSpeech.GAMEPLAY_CHOOSE_TARGET_HELP);
+diff --git a/Assembly-CSharp/Accessibility/AccessibleSpeech.cs b/Assembly-CSharp/Accessibility/AccessibleSpeech.cs
+index 2b29178..393ac37 100644
+--- a/Assembly-CSharp/Accessibility/AccessibleSpeech.cs
++++ b/Assembly-CSharp/Accessibility/AccessibleSpeech.cs
+@@ -77,7 +77,7 @@ namespace Accessibility
+         public static HSASpeech GAMEPLAY_PLAY_CARD_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_PLAY_CARD_HELP, AccessibleKey.CONFIRM), $"Press {AccessibleKey.CONFIRM.ToEnglishString()} to play this card");
+         public static HSASpeech GAMEPLAY_TRADE_CARD_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_TRADE_CARD_HELP, AccessibleKey.TRADE_CARD), $"Press {AccessibleKey.TRADE_CARD.ToEnglishString()} to trade this card");
+         public static HSASpeech GAMEPLAY_SUMMON_MINION_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_SUMMON_MINION_HELP, AccessibleKey.CONFIRM), $"Press {AccessibleKey.CONFIRM.ToEnglishString()} to summon this minion");
+-        public static HSASpeech GAMEPLAY_CHOICE_MODE_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_CHOICE_MODE_HELP, AccessibleKey.CONFIRM), $"Use the arrow keys to go through your options. Press {AccessibleKey.CONFIRM.ToEnglishString()} to choose one");
++        public static HSASpeech GAMEPLAY_CHOICE_MODE_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_CHOICE_MODE_HELP, AccessibleKey.CONFIRM, AccessibleKey.READ_NEXT_VALID_ITEM), $"Use the arrow keys to go through your options. Press {AccessibleKey.CONFIRM.ToEnglishString()} to choose one");
+         public static HSASpeech GAMEPLAY_CHOOSE_TARGET_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_CHOOSE_TARGET_HELP, AccessibleKey.READ_NEXT_VALID_ITEM, AccessibleKey.CONFIRM, AccessibleKey.BACK), $"Use {AccessibleKey.READ_NEXT_VALID_ITEM.ToEnglishString()} or the Zone keys to go through your targets. Press {AccessibleKey.CONFIRM.ToEnglishString()} to choose a target or {AccessibleKey.BACK.ToEnglishString()} to cancel");
+         public static HSASpeech GAMEPLAY_ATTACK_WITH_MINION_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_ATTACK_WITH_MINION_HELP, AccessibleKey.CONFIRM), $"Press {AccessibleKey.CONFIRM.ToEnglishString()} to attack with this minion");
+         public static HSASpeech GAMEPLAY_ATTACK_WITH_HERO_HELP = CreateSpeech(L10N.Of(LocalizationKey.GAMEPLAY_ATTACK_WITH_HERO_HELP, AccessibleKey.CONFIRM), $"Press {AccessibleKey.CONFIRM.ToEnglishString()} to attack with your hero");
+diff --git a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
+index 220c946..ba7f02e 100644
+--- a/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
++++ b/Assembly-CSharp/Accessibility/Battlegrounds/AccessibleBattlegroundsGameplay.cs
+@@ -404,6 +404,16 @@ namespace Accessibility
+                 case AccessibleGameState.CHOICE_MODE:
+                     HandleCheckStatusKeys();
+                     HandleChoiceMode();
++                    return;
++                                        case AccessibleGameState.CHOICE_MODE_CHOICES_HIDDEN:
++                    HandleCheckStatusKeys();
++                    HandleZoneSelection();
++                    HandleZoneInput();
++                    HandleCardReadingInput();
++                    if (AccessibleKey.READ_NEXT_VALID_ITEM.IsPressed())
++                    {
++                        ChoiceCardMgr.Get().GetToggleButton().TriggerRelease();
++                    }
+                     return;
+                 case AccessibleGameState.TARGET_MODE:
+                     HandleCheckStatusKeys();
+@@ -719,7 +729,14 @@ namespace Accessibility
+             }
+             else if (GameState.Get().IsInChoiceMode())
+             {
+-                m_curState = AccessibleGameState.CHOICE_MODE;
++                if (IsTargetChoice() || ChoiceCardMgr.Get().IsShowingFriendlyCards())
++                {
++                    m_curState = AccessibleGameState.CHOICE_MODE;
++                }
++                else
++                {
++                    m_curState = AccessibleGameState.CHOICE_MODE_CHOICES_HIDDEN;
++                }
+             }
+             else if (GameState.Get().IsInTargetMode())
+             {
+diff --git a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+index d10d865..5918e01 100644
+--- a/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
++++ b/Assembly-CSharp/Accessibility/Localization/LocalizationKey.cs
+@@ -158,6 +158,7 @@ public class LocalizationKey
+     public static LocalizationKey GAMEPLAY_YOUR_TURN = CreateKey("GAMEPLAY_YOUR_TURN");
+     public static LocalizationKey GAMEPLAY_OPPONENT_TURN = CreateKey("ACCESSIBILITY_GAMEPLAY_OPPONENT_TURN");
+     public static LocalizationKey GAMEPLAY_TURN_ENDED = CreateKey("ACCESSIBILITY_GAMEPLAY_TURN_ENDED");
++    public static LocalizationKey GAMEPLAY_CHOICES_HIDDEN = CreateKey("ACCESSIBILITY_GAMEPLAY_CHOICES_HIDDEN");
+     public static LocalizationKey GAMEPLAY_PLAYER_CARD_TRIGGERED = CreateKey("ACCESSIBILITY_GAMEPLAY_PLAYER_CARD_TRIGGERED");
+     public static LocalizationKey GAMEPLAY_OPPONENT_CARD_TRIGGERED = CreateKey("ACCESSIBILITY_GAMEPLAY_OPPONENT_CARD_TRIGGERED");
+     public static LocalizationKey GAMEPLAY_OPPONENT_CARD_TRIGGERED_BIG_CARD = CreateKey("ACCESSIBILITY_GAMEPLAY_OPPONENT_CARD_TRIGGERED_BIG_CARD");
+@@ -439,6 +440,7 @@ public class LocalizationKey
+     public static LocalizationKey GAMEPLAY_TRADE_CARD_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_TRADE_CARD_HELP");
+     public static LocalizationKey GAMEPLAY_SUMMON_MINION_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_SUMMON_MINION_HELP");
+     public static LocalizationKey GAMEPLAY_CHOICE_MODE_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_CHOICE_MODE_HELP");
++    public static LocalizationKey GAMEPLAY_HIDDEN_CHOICE_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_HIDDEN_CHOICE_HELP");
+     public static LocalizationKey GAMEPLAY_CHOOSE_TARGET_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_CHOOSE_TARGET_HELP");
+     public static LocalizationKey GAMEPLAY_ATTACK_WITH_MINION_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_ATTACK_WITH_MINION_HELP");
+     public static LocalizationKey GAMEPLAY_ATTACK_WITH_HERO_HELP = CreateKey("ACCESSIBILITY_GAMEPLAY_ATTACK_WITH_HERO_HELP");
+diff --git a/Assembly-CSharp/ChoiceCardMgr.cs b/Assembly-CSharp/ChoiceCardMgr.cs
+index ec3e4b1..5ea9579 100644
+--- a/Assembly-CSharp/ChoiceCardMgr.cs
++++ b/Assembly-CSharp/ChoiceCardMgr.cs
+@@ -1035,6 +1035,8 @@ public class ChoiceCardMgr : MonoBehaviour
+ 	private void ShowChoiceCards(ChoiceState state, bool friendly)
+ 	{
+ 		StartCoroutine(PlayCardAnimation(state, friendly));
++
++		Accessibility.AccessibleGameplay.Get().OnChoice(state.m_cards, m_choiceBanner, m_confirmChoiceButton);
+ 	}
+ 
+ 	private void GetDeckTransform(ZoneDeck deckZone, out Vector3 startPos, out Vector3 startRot, out Vector3 startScale)
+@@ -1531,7 +1533,6 @@ public class ChoiceCardMgr : MonoBehaviour
+ 		ShowChoiceBanner(choiceState);
+ 		ShowChoiceButtons(choiceState);
+ 		HideEnlargedHand();
+-		Accessibility.AccessibleGameplay.Get().OnChoice(choiceState.m_cards, m_choiceBanner, m_confirmChoiceButton);
+ 	}
+ 
+ 	private void HideChoiceUI()
+@@ -1671,6 +1672,8 @@ public class ChoiceCardMgr : MonoBehaviour
+ 			m_toggleChoiceButton.SetText(GameStrings.Get("GLOBAL_SHOW"));
+ 			HideChoiceCards(state);
+ 			m_friendlyChoicesShown = false;
++
++			Accessibility.AccessibleGameplay.Get().OnChoicesHidden();
+ 		}
+ 		else
+ 		{
+@@ -1962,6 +1965,8 @@ public class ChoiceCardMgr : MonoBehaviour
+ 		}
+ 		PlayChoiceEffects(choiceState, choiceState.m_isFriendly);
+ 		choiceState.m_hasBeenRevealed = true;
++
++		Accessibility.AccessibleGameplay.Get().OnChoice(choiceState.m_cards, m_choiceBanner, m_confirmChoiceButton);
+ 	}
+ 
+ 	private void ConcealChoiceCardsUsingCustomSpell(Spell customChoiceConcealSpell, ChoiceState choiceState, Network.EntitiesChosen chosen)
+@@ -1987,4 +1992,11 @@ public class ChoiceCardMgr : MonoBehaviour
+ 		OnFinishedConcealChoices(entitiesChosen.PlayerId);
+ 		GameState.Get().OnEntitiesChosenProcessed(entitiesChosen);
+ 	}
++
++	#region Accessibility
++	internal bool IsShowingFriendlyCards()
++	{
++		return m_friendlyChoicesShown;
++	}
++	#endregion
+ }

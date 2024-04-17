@@ -22,7 +22,7 @@ namespace Decompiler
 
 		private readonly string _decompiledAssemblyCSharpVSProjectDirectory;
 
-		private const LanguageVersion HearthstoneLanguageVersion = LanguageVersion.CSharp7_3;
+		private const LanguageVersion HearthstoneLanguageVersion = LanguageVersion.CSharp9_0;
 
 		private class DecompilationProgressIndicator : IProgress<DecompilationProgress>
 		{
@@ -30,7 +30,7 @@ namespace Decompiler
 
 			public void Report(DecompilationProgress value)
 			{
-				Console.WriteLine($"({++done}/{value.TotalNumberOfFiles}) {value.Status}");
+				Console.WriteLine($"({++done}/{value.TotalUnits}) {value.Status}");
 			}
 		}
 
@@ -147,13 +147,15 @@ namespace Decompiler
 		private void PrintHearthstoneAssemblyCSharpChecksum()
 		{
 			Console.WriteLine("Extracting Assembly-CSharp.dll checksum...");
-
-			SHA1 sha = new SHA1CryptoServiceProvider();
-
-			byte[] hash = sha.ComputeHash(File.ReadAllBytes(_hearthstoneAssemblyCSharpPath));
-
-			string hex = BitConverter.ToString(hash);
-			string hearthstoneAssemblyCSharpChecksum = hex.Replace("-", string.Empty);
+			string hearthstoneAssemblyCSharpChecksum = "";
+			using (FileStream stream = File.OpenRead(_hearthstoneAssemblyCSharpPath))
+			{
+				using (SHA1 sha = SHA1.Create())
+				{
+					byte[] hashBytes = sha.ComputeHash(stream);
+					hearthstoneAssemblyCSharpChecksum = Convert.ToHexString(hashBytes);
+				}
+			}
 
 			Console.WriteLine($"Hearthstone Assembly-CSharp.dll checksum: {hearthstoneAssemblyCSharpChecksum}");
 		}
@@ -206,11 +208,12 @@ namespace Decompiler
 			Console.WriteLine("Decompiling Hearthstone...");
 
 			PEFile module = new PEFile(_decompiledAssemblyCSharpPath);
-			var resolver = new UniversalAssemblyResolver(_decompiledAssemblyCSharpPath, false, module.Reader.DetectTargetFrameworkId());
+			var resolver = new UniversalAssemblyResolver(_decompiledAssemblyCSharpPath, false, module.Metadata.DetectTargetFrameworkId());
 			resolver.AddSearchDirectory(_decompiledAssembliesPath);
 			DecompilerSettings decompilerSettings = new DecompilerSettings(HearthstoneLanguageVersion)
 			{
-				UseSdkStyleProjectFormat = WholeProjectDecompiler.CanUseSdkStyleProjectFormat(module)
+				UseSdkStyleProjectFormat = WholeProjectDecompiler.CanUseSdkStyleProjectFormat(module),
+				UseNestedDirectoriesForNamespaces = true,
 			};
 
 			var decompiler = new WholeProjectDecompiler(decompilerSettings, resolver, resolver, null);
@@ -227,4 +230,3 @@ namespace Decompiler
 		}
 	}
 }
-
